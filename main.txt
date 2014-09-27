@@ -1,6 +1,6 @@
 
-#define Version "0.99a6"
-
+#define Version "0.99a8”
+# new 
 
 // This #include statement was automatically added by the Spark IDE.
 #include "SparkTime/SparkTime.h"
