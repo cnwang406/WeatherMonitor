@@ -1,5 +1,5 @@
 
-#define Version "0.99a10"
+#define Version "0.991a11"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -274,7 +274,10 @@ SparkTime rtc;
 unsigned long currentTime;
 unsigned long lastTime = 0UL;
 String timeStr;
+String newTimeStr;
 
+#define ONE_DAY_MILLIS (24 * 60 * 60 * 1000)
+unsigned long lastSync = millis();
 
 void setup() {
     
@@ -339,6 +342,10 @@ void setup() {
     
     scrollMessage("Weather Monitor. by cnwang ");
     //scrollMessage("012345678901234567890");
+    Time.zone(+8);
+    Spark.syncTime();
+    lastSync = millis();
+    
     TimeString();
      setAllLedIntensity(ledIntensity);
         
@@ -373,6 +380,12 @@ void loop() {
        // h = dht.readHumidity();
     //    t = dht.readTemperature();
         
+        
+    if (millis() - lastSync > ONE_DAY_MILLIS) {
+    // Request time synchronization from the Spark Cloud
+        Spark.syncTime();
+        lastSync = millis();
+  }
       if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
           
         ledStatus(led, 1,300);
@@ -653,7 +666,15 @@ void printBufferLongOld(){
 }
 
 
-void TimeString() {
+void TimeString(){
+     timeStr =" ";
+     //Serial.print(str);
+     //Serial.print(Time.timeStr());
+     String newTimeStr = String(Time.timeStr());
+     timeStr = newTimeStr;
+}
+
+void TimeString_() {
     currentTime = rtc.now();
   
       byte sec = rtc.second(currentTime);
