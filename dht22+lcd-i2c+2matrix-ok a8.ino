@@ -1,5 +1,5 @@
 
-#define Version "0.99a8"
+#define Version "0.99a10"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -46,6 +46,9 @@ int led=7;
 #define XIVELY_API_KEY "4KLae7f8WIhUdUJvF0JxVZ42sWuBWE8VJHt9UJua9PuZP8uS"
 #define FEED_ID "19367269"
 
+
+#define CHECK_DHT_PERIOD    10*60   
+#define CHECK_PIR_PERIOD    5       
 
 #define pirLEDPin D6
 #define pirPin D3
@@ -120,7 +123,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         println("OK");
         
 
-        delay(500);
+        delay(300);
         client.print("{");
         client.print("  \"method\" : \"put\",");
         client.print("  \"resource\" : \"/feeds/");
@@ -129,7 +132,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("  \"params\" : {},");
         client.print("  \"headers\" : {\"X-ApiKey\":\"");
         client.print(XIVELY_API_KEY);
-        delay(500);
+        delay(300);
         client.print("\"},");
         client.print("  \"body\" :");
         client.print("    {");
@@ -140,7 +143,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("          \"id\" : \"Humidity\",");
         client.print("          \"current_value\" : \"");
         client.print(humidity);
-        delay(500);
+        delay(300);
         client.print("\"");
         client.print("        },");
         
@@ -148,7 +151,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("          \"id\" : \"temperature\",");
         client.print("          \"current_value\" : \"");
         client.print(temperature);
-        delay(500);
+        delay(300);
         client.print("\"");
         client.print("        },");
         
@@ -156,7 +159,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("          \"id\" : \"SRF\",");
         client.print("          \"current_value\" : \"");
         client.print(distance);
-        delay(500);
+        delay(300);
         client.print("\"");
         client.print("        },");
         
@@ -164,14 +167,14 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("          \"id\" : \"PIRsensor\",");
         client.print("          \"current_value\" : \"");
         client.print(pirMove);
-        delay(500);
+        delay(300);
         client.print("\"");
         client.print("        }");
        
         client.print("      ]");
         client.print("    },");
         client.print("  \"token\" : \"0x12345\"");
-        delay(500);
+        delay(300);
         client.print("}");
         client.println();
       
@@ -208,7 +211,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
   
     client.stop();
     return result;
-    delay (2000);
+   // delay (2000);  // delete 2014 10 04
 }
 
 //============================================
@@ -254,6 +257,7 @@ int f = 0;  // failed?
 
 unsigned long lastUp;
 unsigned long lastMove;
+unsigned long lastMoveUp;
 int pirMove=0;
 char loopStr[]="|\\-/!@#$%^&*";
 int loopIdx = 0;
@@ -275,7 +279,7 @@ String timeStr;
 void setup() {
     
    rtc.begin(&UDPClient, "3.tw.pool.ntp.org");
-   rtc.setTimeZone(+7); // gmt offset
+   rtc.setTimeZone(+8); // gmt offset
 //   Serial.begin(9600);
   
   lcd = new LiquidCrystal_I2C(0x27, 20,4);
@@ -344,6 +348,7 @@ void setup() {
     ledStatus(D7, 3,1000);
   ledStatus(D7, 2,100);
     lastUp=millis()-3*1000*60;
+    lastMoveUp = millis();
     lcdBacklightLastUp=millis();
     loopIdx=0;
     
@@ -357,8 +362,8 @@ int phase = 0;
 int bufPos=0;
 int bufLen=0;
 char buf2[]="            ";
-char timebuf[30];
-char Accbuf[30];
+char timebuf[40];
+char Accbuf[40];
 
 
 
@@ -368,7 +373,7 @@ void loop() {
        // h = dht.readHumidity();
     //    t = dht.readTemperature();
         
-      if ((millis()-lastUp>(2*1000*60)) || (millis()<lastUp)){  
+      if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
           
         ledStatus(led, 1,300);
         //lcd->backlight();
@@ -380,7 +385,7 @@ void loop() {
         f = 0;
         h = dht.readHumidity();
         t = dht.readTemperature();
-        delay(2000);
+        //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
             if (h<100) {
                 sendToXivelyWithLed(led, t,h,pirMove,0);}
@@ -395,7 +400,7 @@ void loop() {
        //sendToXively2(t,h); 
        //======
        
-    //   delay(2000);
+        delay(2000);
         lcd->setCursor(0,1);
         lcd->print("Temp = 00.00 C   ");
         lcd->setCursor(7,1);
@@ -452,24 +457,25 @@ void loop() {
     // scrollMessage(buf);
     
     
-    int k = digitalRead(pirPin);
-    
+    if ((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) {
+        int k = digitalRead(pirPin);
+        lastMoveUp = millis();
      
-    if (k==0 ) { // no move
-        if (millis()-lastMove>3*1000) {
-            digitalWrite(pirLEDPin, LOW); // turn off the light
-            lcdBacklightOff();
+        if (k==0 ) { // no move
+            if (millis()-lastMove>3*1000) {
+                digitalWrite(pirLEDPin, LOW); // turn off the light
+                lcdBacklightOff();
+            }
+        } else {
+            digitalWrite(pirLEDPin, HIGH);   // trun on the light
+            lastMove=millis();
+            lcdBacklightOn();
+            pirMove+=1;
         }
-    } else {
-        digitalWrite(pirLEDPin, HIGH);   // trun on the light
-        lastMove=millis();
-        lcdBacklightOn();
-        pirMove+=1;
-    }
-    sprintf(Accbuf,"K=%d A=%d",k,pirMove);
-     lcd->setCursor(8,3);
-     lcd->print (Accbuf);
-    
+        sprintf(Accbuf,"K=%d A=%d",k,pirMove);
+        lcd->setCursor(8,3);
+        lcd->print (Accbuf);
+    } // check PIR every 5 seconds
 
 }
 
@@ -487,7 +493,7 @@ void lcdBacklightOff(){
 
 
 const int numDevices = 1;
-const long scrollDelay = 20;
+const long scrollDelay = 16;
 unsigned long bufferLong [14] = {0}; 
 unsigned long bufferLong2[14]={0};
 
