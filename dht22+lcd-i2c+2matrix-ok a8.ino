@@ -684,7 +684,8 @@ void TimeString(){
     timeStr.toCharArray(timebuf,timeStr.length());
     
     //set intensity
-    byte currentHour = rtc.hour(currentTime);
+    byte currentHour =  Time.hour();
+    //rtc.hour(currentTime);
     if ((currentHour >=5) && (currentHour<18)) {
         ledIntensity = 15;
     } else if ((currentHour >=18) && (currentHour<24)){
