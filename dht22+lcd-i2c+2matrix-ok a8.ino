@@ -1,5 +1,5 @@
 
-#define Version "0.991a11"
+#define Version "0.993a13"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -123,7 +123,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         println("OK");
         
 
-        delay(300);
+        delay(500);
         client.print("{");
         client.print("  \"method\" : \"put\",");
         client.print("  \"resource\" : \"/feeds/");
@@ -132,7 +132,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("  \"params\" : {},");
         client.print("  \"headers\" : {\"X-ApiKey\":\"");
         client.print(XIVELY_API_KEY);
-        delay(300);
+        delay(500);
         client.print("\"},");
         client.print("  \"body\" :");
         client.print("    {");
@@ -143,7 +143,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("          \"id\" : \"Humidity\",");
         client.print("          \"current_value\" : \"");
         client.print(humidity);
-        delay(300);
+        delay(500);
         client.print("\"");
         client.print("        },");
         
@@ -151,30 +151,30 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("          \"id\" : \"temperature\",");
         client.print("          \"current_value\" : \"");
         client.print(temperature);
-        delay(300);
+        delay(500);
         client.print("\"");
         client.print("        },");
         
-        client.print("    {");
-        client.print("          \"id\" : \"SRF\",");
-        client.print("          \"current_value\" : \"");
-        client.print(distance);
-        delay(300);
-        client.print("\"");
-        client.print("        },");
+        //client.print("    {");
+        //client.print("          \"id\" : \"SRF\",");
+        //client.print("          \"current_value\" : \"");
+        //client.print(distance);
+        //delay(500);
+        //client.print("\"");
+        //client.print("        },");
         
         client.print("        {");
         client.print("          \"id\" : \"PIRsensor\",");
         client.print("          \"current_value\" : \"");
         client.print(pirMove);
-        delay(300);
+        delay(500);
         client.print("\"");
         client.print("        }");
        
         client.print("      ]");
         client.print("    },");
         client.print("  \"token\" : \"0x12345\"");
-        delay(300);
+        delay(500);
         client.print("}");
         client.println();
       
@@ -347,13 +347,12 @@ void setup() {
     lastSync = millis();
     
     TimeString();
-     setAllLedIntensity(ledIntensity);
-        
+
     dht.begin();
     pinMode(D7, OUTPUT);
     //pinMode(A7, INPUT);
     ledStatus(D7, 3,1000);
-  ledStatus(D7, 2,100);
+    ledStatus(D7, 2,100);
     lastUp=millis()-3*1000*60;
     lastMoveUp = millis();
     lcdBacklightLastUp=millis();
@@ -368,8 +367,8 @@ int phase = 0;
 //char message[64];
 int bufPos=0;
 int bufLen=0;
-char buf2[]="            ";
-char timebuf[40];
+char buf2[]="                                                      ";
+char timebuf[60];
 char Accbuf[40];
 
 
@@ -385,8 +384,8 @@ void loop() {
     // Request time synchronization from the Spark Cloud
         Spark.syncTime();
         lastSync = millis();
-  }
-      if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
+    }
+    if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
           
         ledStatus(led, 1,300);
         //lcd->backlight();
@@ -394,24 +393,24 @@ void loop() {
         
         lastUp=millis();
         
-        
         f = 0;
         h = dht.readHumidity();
         t = dht.readTemperature();
         //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
-            if (h<100) {
-                sendToXivelyWithLed(led, t,h,pirMove,0);}
+        if (h<100) {
+            sendToXivelyWithLed(led, t,h,pirMove,0);
+        }
             //} //else {
             // if (h<100) {
             //     sendToXivelyWithLed(led, t,h,pirMove,-1);
             // }
         //}
         pirMove=0;
-        // distanceAcc=0;
-        // distanceCount=0;
-       //sendToXively2(t,h); 
-       //======
+            // distanceAcc=0;
+            // distanceCount=0;
+        //sendToXively2(t,h); 
+        //======
        
         delay(2000);
         lcd->setCursor(0,1);
@@ -426,15 +425,15 @@ void loop() {
         lcd->print( "U/L: ");
         lcd->print(++dataSent);
         
-        TimeString();
+    //    TimeString();
         // check hour 
-        setAllLedIntensity(ledIntensity);
+    //    setAllLedIntensity(ledIntensity);
         
         //sprintf(timebuf, "%s", timeStr.toCharArray);
          //sprintf(buf, "T=%hi.%01hi%cC, H=%i.%01i%%, %s ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
-         sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
-         bufPos=0;
-         bufLen = strlen(buf);
+     //    sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
+     //    bufPos=0;
+     //    bufLen = strlen(buf);
 
         lcdBacklightOff();
     } else { //not 2 min
@@ -449,19 +448,25 @@ void loop() {
 
     }
     
-    
+    TimeString();
+    sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
+    //bufPos=0;
+    bufLen = strlen(buf);
+    lcd->setCursor(0,3);
+    lcd->print (buf);
+    lcd->setCursor(0,2);
+    lcd->print (bufLen);
+  
     // cancel split message check
     for (int i=0; i<10; i++) {
         *(buf2+i)=0;
     }
     
     
-    for (int i=0; i<4 && bufPos<bufLen; i++, bufPos++) {
+    for (int i=0; i<8 && bufPos<bufLen; i++, bufPos++) {
         *(buf2+i) = *(buf+bufPos);
         
     }
-    // lcd->setCursor(1,3);
-    // lcd->print(buf2);
     *(buf2+bufPos)=0;
     if (bufPos>=bufLen) bufPos=0;
     
@@ -475,7 +480,7 @@ void loop() {
         lastMoveUp = millis();
      
         if (k==0 ) { // no move
-            if (millis()-lastMove>3*1000) {
+            if (millis()-lastMove>CHECK_PIR_PERIOD*1000) {
                 digitalWrite(pirLEDPin, LOW); // turn off the light
                 lcdBacklightOff();
             }
@@ -488,6 +493,9 @@ void loop() {
         sprintf(Accbuf,"K=%d A=%d",k,pirMove);
         lcd->setCursor(8,3);
         lcd->print (Accbuf);
+     
+        
+        
     } // check PIR every 5 seconds
 
 }
@@ -667,54 +675,15 @@ void printBufferLongOld(){
 
 
 void TimeString(){
-     timeStr =" ";
+    timeStr =" ";
      //Serial.print(str);
      //Serial.print(Time.timeStr());
-     String newTimeStr = String(Time.timeStr());
-     timeStr = newTimeStr;
-}
-
-void TimeString_() {
-    currentTime = rtc.now();
-  
-      byte sec = rtc.second(currentTime);
-      if (sec == 10) {
-	// Build Date String
-    	timeStr = " ";
-	    timeStr += rtc.dayOfWeekString(currentTime);
-	    timeStr += ", ";
-	    timeStr += rtc.monthNameString(currentTime);
-	    timeStr += " "; 
-	    timeStr += rtc.dayString(currentTime);
-	    timeStr += ", ";
-	    timeStr += rtc.yearString(currentTime);
-	//Serial.println(timeStr);
-      } else if (sec == 40) {
-	// Including current timezone
-	//Serial.println(rtc.ISODateString(currentTime));
-      } else if (sec == 50) {
-	// UTC or Zulu time
-	//Serial.println(rtc.ISODateUTCString(currentTime));	
-      } else {
-	// Just the time in 12 hour format
-	    timeStr = " ";
-	    timeStr += rtc.hourString(currentTime);
-	    timeStr += ":";
-	    timeStr += rtc.minuteString(currentTime);
-	    timeStr += " ";
-	    timeStr += rtc.monthString(currentTime);
-	    timeStr += "/";
-	    timeStr += rtc.dayString(currentTime);
-	   // timeStr += ":";
-	   // timeStr += rtc.secondString(currentTime);	
-	   // timeStr += " ";	
-	   // timeStr += rtc.AMPMString(currentTime);
-	    timeStr += 0;
-// 	Serial.println(timeStr);
-//       }
-//       lastTime = currentTime;
-    }
+    String newTimeStr = String(Time.timeStr());
+    timeStr = newTimeStr;
+     
     timeStr.toCharArray(timebuf,timeStr.length());
+    
+    //set intensity
     byte currentHour = rtc.hour(currentTime);
     if ((currentHour >=5) && (currentHour<18)) {
         ledIntensity = 15;
@@ -723,18 +692,14 @@ void TimeString_() {
     } else {
         ledIntensity = 0;
     }
-    
-    
-}
-
-
-void setAllLedIntensity(int intensity) {
+  
     for (int a=0; a<6; a++) {
         
-        lc->setIntensity(a, intensity);
+        lc->setIntensity(a, ledIntensity);
     }
     
-    if (intensity == 0) {
+    if (ledIntensity == 0) {
         lcdBacklightOff();
     }
 }
+
