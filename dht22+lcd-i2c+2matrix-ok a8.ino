@@ -1,5 +1,5 @@
 
-#define Version "0.993a13"
+#define Version "0.994a14"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -115,12 +115,13 @@ void sendToXivelyWithLed(int led, float temperature, float humidity, int pirMove
 int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //TCPClient client = server.available();
     int result=0;
-    print("\nConnect to xively...");
-      client.flush();
+    statusPrint("ConnToX...");
+    
+    client.flush();
     //temperature = getTemperature();
     if (client.connect("api.xively.com", 8081)) 
     {
-        println("OK");
+        statusPrint("Start send");
         
 
         delay(500);
@@ -178,13 +179,13 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("}");
         client.println();
       
-   
+        statusPrint("SendDone");
         println("Connect Close");
         result=0;
     } 
     else 
     {
-        println("Fail");
+        statusPrint("Fail");
         // Connection failed
         //Serial.println("connection failed");
         result=1;
@@ -196,7 +197,8 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         // Read response
         
         char c= client.read();
-        println("Response from client");
+        String str = "Client:" +c;
+        statusPrint("Response from client");
         
         Serial.print(c,HEX);
     }
@@ -204,7 +206,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
     if (!client.connected()) 
     {
         Serial.println();
-        Serial.println("disconnecting from Xively");
+        statusPrint("disc X Stop");
         client.stop();
     }
 
@@ -281,8 +283,8 @@ unsigned long lastSync = millis();
 
 void setup() {
     
-   rtc.begin(&UDPClient, "3.tw.pool.ntp.org");
-   rtc.setTimeZone(+8); // gmt offset
+   //rtc.begin(&UDPClient, "3.tw.pool.ntp.org");
+   //rtc.setTimeZone(+8); // gmt offset
 //   Serial.begin(9600);
   
   lcd = new LiquidCrystal_I2C(0x27, 20,4);
@@ -704,3 +706,11 @@ void TimeString(){
     }
 }
 
+
+void statusPrint(String statusStr) {
+    lcd->setCursor(8,3);
+    lcd->print ("                       ");
+    lcd->setCursor(8,3);
+    lcd->print (statusStr);
+
+}
