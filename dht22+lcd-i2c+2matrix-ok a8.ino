@@ -1,5 +1,5 @@
 
-#define Version "0.994a14"
+#define Version "0.994a16"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -115,7 +115,7 @@ void sendToXivelyWithLed(int led, float temperature, float humidity, int pirMove
 int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //TCPClient client = server.available();
     int result=0;
-    statusPrint("ConnToX...");
+    statusPrint("ConnTo Xively...");
     
     client.flush();
     //temperature = getTemperature();
@@ -179,7 +179,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("}");
         client.println();
       
-        statusPrint("SendDone");
+        statusPrint("Send Done");
         println("Connect Close");
         result=0;
     } 
@@ -277,7 +277,7 @@ unsigned long currentTime;
 unsigned long lastTime = 0UL;
 String timeStr;
 String newTimeStr;
-
+String emptyStr;
 #define ONE_DAY_MILLIS (24 * 60 * 60 * 1000)
 unsigned long lastSync = millis();
 
@@ -362,6 +362,11 @@ void setup() {
     
     ledStatus(D5, 1,100);   
     
+    emptyStr="";
+    for (int i=0;i<19;i++){
+        emptyStr +=" ";
+    }
+    
    
 }
 
@@ -394,10 +399,11 @@ void loop() {
         lcdBacklightOn();
         
         lastUp=millis();
-        
+        statusPrint ("Reading DHT");
         f = 0;
         h = dht.readHumidity();
         t = dht.readTemperature();
+        statusPrint ("Read OK");
         //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
         if (h<100) {
@@ -416,15 +422,22 @@ void loop() {
        
         delay(2000);
         lcd->setCursor(0,1);
-        lcd->print("Temp = 00.00 C   ");
-        lcd->setCursor(7,1);
+        lcd->print(emptyStr);
+        lcd->setCursor(0,1);
+        lcd->print("T  = ");
+        //lcd->setCursor(5,1);
         lcd->print(t,2);
+        lcd->print(" C");
+        
         lcd->setCursor(0,2);
-        lcd->print("RH.% = 99.00 %   ");
-        lcd->setCursor(7,2);
+        lcd->print(emptyStr);
+        lcd->setCursor(0,2);
+        lcd->print("RH%= ");
+        //lcd->setCursor(5,2);
         lcd->print(h,2);
-        lcd->setCursor(0,3);
-        lcd->print( "U/L: ");
+        lcd->print(" %");
+        lcd->setCursor(15,2);
+        //lcd->print( " ");
         lcd->print(++dataSent);
         
     //    TimeString();
@@ -443,8 +456,8 @@ void loop() {
         lcd->setCursor(19,3);
         lcd->print(loopStr[loopIdx++]);
         if (loopIdx>13) loopIdx=0;
-        TimeString();
-        lcd->setCursor(8,3);
+        //TimeString();
+        //lcd->setCursor(8,3);
         //lcd->print(timebuf);
         
 
@@ -454,10 +467,10 @@ void loop() {
     sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
     //bufPos=0;
     bufLen = strlen(buf);
-    lcd->setCursor(0,3);
-    lcd->print (buf);
-    lcd->setCursor(0,2);
-    lcd->print (bufLen);
+    //lcd->setCursor(0,3);
+    //lcd->print (buf);
+    //lcd->setCursor(0,2);
+    //lcd->print (bufLen);
   
     // cancel split message check
     for (int i=0; i<10; i++) {
@@ -492,9 +505,9 @@ void loop() {
             lcdBacklightOn();
             pirMove+=1;
         }
-        sprintf(Accbuf,"K=%d A=%d",k,pirMove);
-        lcd->setCursor(8,3);
-        lcd->print (Accbuf);
+       // sprintf(Accbuf,"K=%d A=%d",k,pirMove);
+        //lcd->setCursor(8,3);
+        //lcd->print (Accbuf);
      
         
         
@@ -708,9 +721,9 @@ void TimeString(){
 
 
 void statusPrint(String statusStr) {
-    lcd->setCursor(8,3);
-    lcd->print ("                       ");
-    lcd->setCursor(8,3);
+    lcd->setCursor(0,3);
+    lcd->print(emptyStr);
+    lcd->setCursor(0,3);
     lcd->print (statusStr);
 
 }
