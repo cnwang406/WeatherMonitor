@@ -1,5 +1,5 @@
 
-#define Version "0.994a16"
+#define Version "0.995a19"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -84,6 +84,16 @@ int redLEDValue = 0;                            // stores the value of brightnes
 int ledIntensity = 15;                          
 
 
+// OAuth Key
+#define TOKEN "2927024191-XLHyWduCLFMP0ouEvhxzBfZ86ATqSFBK9Rm3cDK"
+
+// Twitter Proxy
+#define LIB_DOMAIN "arduino-tweet.appspot.com"
+
+
+
+
+
 void print(String str) {
     Serial.print(str);
 }
@@ -116,8 +126,11 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //TCPClient client = server.available();
     int result=0;
     statusPrint("ConnTo Xively...");
-    
+    twitterStr("21 WM connect to Xively ");
     client.flush();
+    
+    String msg = "22 WM Sent to X T=" + String(temperature).substring(0,5) + " RH="+String(humidity).substring(0,5);
+    
     //temperature = getTemperature();
     if (client.connect("api.xively.com", 8081)) 
     {
@@ -182,6 +195,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         statusPrint("Send Done");
         println("Connect Close");
         result=0;
+        twitterStr(msg);
     } 
     else 
     {
@@ -189,6 +203,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         // Connection failed
         //Serial.println("connection failed");
         result=1;
+        twitterStr("221 WM send Fail ");
     }
 
 
@@ -197,10 +212,11 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         // Read response
         
         char c= client.read();
-        String str = "Client:" +c;
+        String msgstr = "23 WM Xively response Client:" +c;
         statusPrint("Response from client");
         
         Serial.print(c,HEX);
+        twitterStr(msgstr);
     }
 
     if (!client.connected()) 
@@ -208,10 +224,12 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         Serial.println();
         statusPrint("disc X Stop");
         client.stop();
+        twitterStr("231 WM Xively not connected ");
     }
 
   
     client.stop();
+    
     return result;
    // delay (2000);  // delete 2014 10 04
 }
@@ -366,8 +384,8 @@ void setup() {
     for (int i=0;i<19;i++){
         emptyStr +=" ";
     }
-    
-   
+    String twStart = "0 Weather Moniotr Start (" + String(Version) + ")";    
+   twitterStr(twStart);
 }
 
 int phase = 0;
@@ -391,6 +409,7 @@ void loop() {
     // Request time synchronization from the Spark Cloud
         Spark.syncTime();
         lastSync = millis();
+        twitterStr("11 WM Time Sync");
     }
     if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
           
@@ -399,11 +418,16 @@ void loop() {
         lcdBacklightOn();
         
         lastUp=millis();
+        
         statusPrint ("Reading DHT");
         f = 0;
         h = dht.readHumidity();
         t = dht.readTemperature();
         statusPrint ("Read OK");
+        String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5);
+        
+        twitterStr(twmsg);
+        
         //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
         if (h<100) {
@@ -504,6 +528,7 @@ void loop() {
             lastMove=millis();
             lcdBacklightOn();
             pirMove+=1;
+            
         }
        // sprintf(Accbuf,"K=%d A=%d",k,pirMove);
         //lcd->setCursor(8,3);
@@ -726,4 +751,22 @@ void statusPrint(String statusStr) {
     lcd->setCursor(0,3);
     lcd->print (statusStr);
 
+}
+
+void twitterStr(String twitterMsg){
+    
+    TCPClient twclient;
+
+    delay(1000);
+
+    twclient.connect(LIB_DOMAIN, 80);
+    twclient.println("POST /update HTTP/1.0");
+    twclient.println("Host: " LIB_DOMAIN);
+    twclient.print("Content-Length: ");
+    twclient.println(twitterMsg.length()+strlen(TOKEN)+14);
+    twclient.println();
+    twclient.print("token=");
+    twclient.print(TOKEN);
+    twclient.print("&status=");
+    twclient.println(twitterMsg);
 }
