@@ -1,5 +1,5 @@
 
-#define Version "0.995a22"
+#define Version "0.995a23"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -766,19 +766,21 @@ void statusPrint(String statusStr) {
 void twitterStr(String twitterMsg){
     
     TCPClient twclient;
+    String twitterMsgStamp = twitterMsg+" " + timeStr;
 
-    delay(1000);
+  
+    //delay(100);
 
     if(twclient.connect(LIB_DOMAIN, 80) ) {
         twclient.println("POST /update HTTP/1.0");
         twclient.println("Host: " LIB_DOMAIN);
         twclient.print("Content-Length: ");
-        twclient.println(twitterMsg.length()+strlen(TOKEN)+14);
+        twclient.println(twitterMsgStamp.length()+strlen(TOKEN)+14);
         twclient.println();
         twclient.print("token=");
         twclient.print(TOKEN);
         twclient.print("&status=");
-        twclient.println(twitterMsg+ " "+timeStr); 
+        twclient.println(twitterMsgStamp); 
     } else {
         statusPrint ("Fail to twitter");
     }
