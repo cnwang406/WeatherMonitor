@@ -1,5 +1,5 @@
 
-#define Version "0.995a19"
+#define Version "0.995a22"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -713,12 +713,22 @@ void printBufferLongOld(){
   }
 }
 
+String left(int sss, int leng) {
+    String temp = String("0000") + String(sss);
+    String temp2 = temp.substring(temp.length()-leng);
+    return temp2;
+    //return temp2;
+    
+}
 
 void TimeString(){
     timeStr =" ";
      //Serial.print(str);
      //Serial.print(Time.timeStr());
-    String newTimeStr = String(Time.timeStr());
+    //String newTimeStr = String(Time.timeStr());
+    //String newTimeStr = String(Time.month()) + "/" + String(Time.day()) + " " + String(Time.hour())+ ":"+String(Time.minute());
+    String newTimeStr = left(Time.month(),2) + "/" + left(Time.day(),2) + " " + left(Time.hour(),2)+ ":"+ left(Time.minute(),2)+" ";
+    
     timeStr = newTimeStr;
      
     timeStr.toCharArray(timebuf,timeStr.length());
@@ -759,14 +769,17 @@ void twitterStr(String twitterMsg){
 
     delay(1000);
 
-    twclient.connect(LIB_DOMAIN, 80);
-    twclient.println("POST /update HTTP/1.0");
-    twclient.println("Host: " LIB_DOMAIN);
-    twclient.print("Content-Length: ");
-    twclient.println(twitterMsg.length()+strlen(TOKEN)+14);
-    twclient.println();
-    twclient.print("token=");
-    twclient.print(TOKEN);
-    twclient.print("&status=");
-    twclient.println(twitterMsg);
+    if(twclient.connect(LIB_DOMAIN, 80) ) {
+        twclient.println("POST /update HTTP/1.0");
+        twclient.println("Host: " LIB_DOMAIN);
+        twclient.print("Content-Length: ");
+        twclient.println(twitterMsg.length()+strlen(TOKEN)+14);
+        twclient.println();
+        twclient.print("token=");
+        twclient.print(TOKEN);
+        twclient.print("&status=");
+        twclient.println(twitterMsg+ " "+timeStr); 
+    } else {
+        statusPrint ("Fail to twitter");
+    }
 }
