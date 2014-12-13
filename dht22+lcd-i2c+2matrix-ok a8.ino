@@ -1,3 +1,6 @@
+// This #include statement was automatically added by the Spark IDE.
+#include "Xively.h"
+
 
 #define Version "0.995a23"
 
@@ -16,25 +19,7 @@
 
 #include "ledcontrol.h"
 
-// This #include statement was automatically added by the Spark IDE.
-//#include "dht22.cpp"
-// This #include statement was automatically added by the Spark IDE.
 
-// This #include statement was automatically added by the Spark IDE.
-//#include "nouse.h"
-
-// Use LCD I2C backpack
-// SDA --> D0
-// SCL --> D1
-// VCC --> external 5V
-//GND --> GND
-// id = 0x27, declared in setup();
-
-// VCC - 3V3
-// GND - GND
-// DIN - A0
-// CS - A1
-// CLK - A2
 
 int led=7;
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
@@ -42,16 +27,25 @@ int led=7;
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 
-
+//Xively API key
 #define XIVELY_API_KEY "4KLae7f8WIhUdUJvF0JxVZ42sWuBWE8VJHt9UJua9PuZP8uS"
 #define FEED_ID "19367269"
 
+// Twitter API Key
+#define TOKEN "2927024191-XLHyWduCLFMP0ouEvhxzBfZ86ATqSFBK9Rm3cDK"
+// Twitter Proxy
+#define LIB_DOMAIN "arduino-tweet.appspot.com"
 
-#define CHECK_DHT_PERIOD    10*60   
-#define CHECK_PIR_PERIOD    5       
+
+
+#define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
+#define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
 
 #define pirLEDPin D6
 #define pirPin D3
+
+#define breathLED D5
+
 
 // SRF-05
 const int numOfReadings = 3;                   // number of readings to take/ items in the array
@@ -59,36 +53,22 @@ int readings[numOfReadings];                    // stores the distance readings 
 int arrayIndex = 0;                             // arrayIndex of the current item in the array
 int total = 0;                                  // stores the cumlative total
 int averageDistance = 0;                        // stores the average value
-
-// setup pins and variables for SRF05 sonar device
-
-// #define echoPin  D3                                // SRF05 echo pin (digital 2)
-// #define initPin  D2                                // SRF05 trigger pin (digital 3)
-
-#define breathLED D5
-
 unsigned long pulseTime = 0;                    // stores the pulse in Micro Seconds
 unsigned long distance = 0;                     // variable for storing the distance (cm)
 #define SRFThreshold 38
 #define SRFMAX  50
 
+
 // setup pins/values for LED
 
 #define redLEDPin  D6  //A4                              // Red LED, connected to digital PWM pin 9
 int redLEDValue = 0;                            // stores the value of brightness for the LED (0 = fully off, 255 = fully on)
-// int distanceCount=0;
-// int distanceAcc=0;
 
 //setup
 
 int ledIntensity = 15;                          
 
 
-// OAuth Key
-#define TOKEN "2927024191-XLHyWduCLFMP0ouEvhxzBfZ86ATqSFBK9Rm3cDK"
-
-// Twitter Proxy
-#define LIB_DOMAIN "arduino-tweet.appspot.com"
 
 
 
@@ -108,7 +88,7 @@ TCPServer server = TCPServer(8081);
 //--------------------------------------
 //TCPClient client;
 
-TCPClient client;
+TCPClient client;   //for Xively use
 
 
 
@@ -248,18 +228,6 @@ void ledStatus(int ledPin, int x, int t)
 }
 
 
-/*
- pin 12 is connected to the DataIn
- pin 11 is connected to the CLK
- pin 10 is connected to LOAD
-//  */
-// VCC - 3V3
-// GND - GND
-// DIN - A0
-// CS - A1
-// CLK - A2
-//data load clock num
-//                   DIN, CLK, LOAD, #chips 
 
 #define LedMatrics 6
 LedControl *lc;
@@ -330,20 +298,6 @@ void setup() {
         buf[i] = ' ';
     }
     
-    //SRF-05
-    // pinMode(redLEDPin, OUTPUT);
-    // pinMode(initPin,OUTPUT);
-    // pinMode(echoPin, INPUT);
-    
-    //   for (int thisReading = 0; thisReading < numOfReadings; thisReading++) {
-    // readings[thisReading] = 0;
-//   }
-    
-  
-  // set up the LCD's number of columns and rows: 
- // lcd->begin(20, 4);
-//  lcd->clear();
-  // Print a message to the LCD.
   lcd->setCursor(3,0);
   lcd->print("Weather monitor");
   lcd->setCursor(6,1);
@@ -352,16 +306,9 @@ void setup() {
   lcd->print("Version :");
   lcd->print(Version);
          
-    // initial DHT 
-    
-    // Serial.begin(115200);
-    // println("Start DHT22 monitor");
-    // print("Version : ");
-    // Serial.println (Version);
-    // //client.flush();
-    
+   
     scrollMessage("Weather Monitor. by cnwang ");
-    //scrollMessage("012345678901234567890");
+
     Time.zone(+8);
     Spark.syncTime();
     lastSync = millis();
@@ -370,7 +317,6 @@ void setup() {
 
     dht.begin();
     pinMode(D7, OUTPUT);
-    //pinMode(A7, INPUT);
     ledStatus(D7, 3,1000);
     ledStatus(D7, 2,100);
     lastUp=millis()-3*1000*60;
@@ -400,9 +346,6 @@ char Accbuf[40];
 
 void loop() {
 
-    //if ((millis()-lastUp>(tInterval()*1000*60)) || (millis()<lastUp)){
-       // h = dht.readHumidity();
-    //    t = dht.readTemperature();
         
         
     if (millis() - lastSync > ONE_DAY_MILLIS) {
