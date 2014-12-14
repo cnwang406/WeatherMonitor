@@ -1,8 +1,11 @@
 // This #include statement was automatically added by the Spark IDE.
-#include "Xively.h"
+//#include "XivelyDatastream.h"
+
+// This #include statement was automatically added by the Spark IDE.
+//#include "XivelyClient.h"
 
 
-#define Version "0.995a23"
+#define Version "0.995a27"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -40,6 +43,7 @@ int led=7;
 
 #define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
 #define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
+#define LCD_BACKLIGHT_PERIOD    10  //lcd backlight last 10 sec.
 
 #define pirLEDPin D6
 #define pirPin D3
@@ -90,9 +94,34 @@ TCPServer server = TCPServer(8081);
 
 TCPClient client;   //for Xively use
 
+//-----------
+/*
+char humidityId[] = "Humidity";
+char temperatureId[] = "temperature";
+char pirId[] = "PIRsensor";
 
+XivelyDatastream datastreams[] = {
+  XivelyDatastream(humidityId, strlen(sensorId), DATASTREAM_FLOAT),
+  XivelyDatastream(temperatureId, strlen(bufferId), DATASTREAM_FLOAT),
+  XivelyDatastream(pirId,strlen(bufferId), DATASTREAM_INT)
+};
+*/
+/*XivelyFeed feed(FEED_ID, datastreams, 3 );/* number of datastreams */
+/*
+XivelyClient xivelyclient(client);
 
+int sendToXively2(float temperature, float humidity, int pirMove,int distance){
 
+    datastreams[0].setFloat(humidity);
+    datastreams[1].setFloat(temperature);
+    datastreams[2].setInt(pirMove);
+    int ret = xivelyclient.put(feed, XIVELY_API_KEY);
+    
+    return ret;
+}
+
+*/
+//-----------
 void sendToXivelyWithLed(int led, float temperature, float humidity, int pirMove,int distance){
     int r = sendToXively(temperature, humidity, pirMove,distance);
     if (r==0){
@@ -364,12 +393,13 @@ void loop() {
         
         statusPrint ("Reading DHT");
         f = 0;
-        h = dht.readHumidity();
         t = dht.readTemperature();
+        h = dht.readHumidity();
+        
         statusPrint ("Read OK");
         String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5);
         
-        twitterStr(twmsg);
+        //twitterStr(twmsg);
         
         //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
@@ -387,7 +417,7 @@ void loop() {
         //sendToXively2(t,h); 
         //======
        
-        delay(2000);
+        delay(500);
         lcd->setCursor(0,1);
         lcd->print(emptyStr);
         lcd->setCursor(0,1);
@@ -418,33 +448,20 @@ void loop() {
      //    bufLen = strlen(buf);
 
         lcdBacklightOff();
-    } else { //not 2 min
-        
-        lcd->setCursor(19,3);
-        lcd->print(loopStr[loopIdx++]);
-        if (loopIdx>13) loopIdx=0;
-        //TimeString();
-        //lcd->setCursor(8,3);
-        //lcd->print(timebuf);
-        
-
     }
+    
+    lcd->setCursor(19,3);
+    lcd->print(loopStr[loopIdx++]);
+    if (loopIdx>13) loopIdx=0;
     
     TimeString();
     sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
-    //bufPos=0;
     bufLen = strlen(buf);
-    //lcd->setCursor(0,3);
-    //lcd->print (buf);
-    //lcd->setCursor(0,2);
-    //lcd->print (bufLen);
-  
-    // cancel split message check
+    /*
     for (int i=0; i<10; i++) {
         *(buf2+i)=0;
     }
-    
-    
+    */
     for (int i=0; i<8 && bufPos<bufLen; i++, bufPos++) {
         *(buf2+i) = *(buf+bufPos);
         
@@ -452,9 +469,7 @@ void loop() {
     *(buf2+bufPos)=0;
     if (bufPos>=bufLen) bufPos=0;
     
-    // //sprintf(buf2, "1234567890ABC");
     scrollMessage(buf2);
-    // scrollMessage(buf);
     
     
     if ((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) {
@@ -462,7 +477,7 @@ void loop() {
         lastMoveUp = millis();
      
         if (k==0 ) { // no move
-            if (millis()-lastMove>CHECK_PIR_PERIOD*1000) {
+            if (millis()-lastMove>LCD_BACKLIGHT_PERIOD*1000 || (millis()<lastMove)) {
                 digitalWrite(pirLEDPin, LOW); // turn off the light
                 lcdBacklightOff();
             }
