@@ -5,7 +5,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.995a27"
+#define Version "0.995a28"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -135,7 +135,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //TCPClient client = server.available();
     int result=0;
     statusPrint("ConnTo Xively...");
-    twitterStr("21 WM connect to Xively ");
+    //twitterStr("21 WM connect to Xively ");
     client.flush();
     
     String msg = "22 WM Sent to X T=" + String(temperature).substring(0,5) + " RH="+String(humidity).substring(0,5);
@@ -457,11 +457,11 @@ void loop() {
     TimeString();
     sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
     bufLen = strlen(buf);
-    /*
+    
     for (int i=0; i<10; i++) {
         *(buf2+i)=0;
     }
-    */
+    
     for (int i=0; i<8 && bufPos<bufLen; i++, bufPos++) {
         *(buf2+i) = *(buf+bufPos);
         
@@ -512,7 +512,7 @@ void lcdBacklightOff(){
 
 
 const int numDevices = 1;
-const long scrollDelay = 16;
+const long scrollDelay = 8;
 unsigned long bufferLong [14] = {0}; 
 unsigned long bufferLong2[14]={0};
 
