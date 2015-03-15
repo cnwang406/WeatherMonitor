@@ -5,7 +5,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.995a28"
+#define Version "0.995a30"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -138,7 +138,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //twitterStr("21 WM connect to Xively ");
     client.flush();
     
-    String msg = "22 WM Sent to X T=" + String(temperature).substring(0,5) + " RH="+String(humidity).substring(0,5);
+    String msg = "22 WM Sent to X T=" + String(temperature).substring(0,5) + " RH="+String(humidity).substring(0,5) + " P=" + String(pirMove);
     
     //temperature = getTemperature();
     if (client.connect("api.xively.com", 8081)) 
@@ -379,9 +379,11 @@ void loop() {
         
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
+        lcd->init();  
         Spark.syncTime();
         lastSync = millis();
         twitterStr("11 WM Time Sync");
+        
     }
     if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
           
