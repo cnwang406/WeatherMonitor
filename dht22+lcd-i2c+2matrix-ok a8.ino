@@ -5,7 +5,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.995a30"
+#define Version "0.995a40"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -42,7 +42,7 @@ int led=7;
 
 
 #define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
-#define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
+#define CHECK_PIR_PERIOD    30       //check PIR every 5 sec.
 #define LCD_BACKLIGHT_PERIOD    10  //lcd backlight last 10 sec.
 
 #define pirLEDPin D6
@@ -79,11 +79,15 @@ int ledIntensity = 15;
 
 
 void print(String str) {
-    Serial.print(str);
+    // Serial.begin(9600);
+    // Serial.print(str);
+    // Serial.end();
 }
 void println(String str) {
-    Serial.print(str);
-    Serial.print("\n");
+    // Serial.begin(9600);
+    // Serial.println(str);
+    // Serial.end();
+
 }
 
 
@@ -134,7 +138,11 @@ void sendToXivelyWithLed(int led, float temperature, float humidity, int pirMove
 int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //TCPClient client = server.available();
     int result=0;
+    
+    //return 1;
+    
     statusPrint("ConnTo Xively...");
+println("Xively -> connecting");
     //twitterStr("21 WM connect to Xively ");
     client.flush();
     
@@ -143,13 +151,14 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
     //temperature = getTemperature();
     if (client.connect("api.xively.com", 8081)) 
     {
+println("Xively -> connected");
         statusPrint("Start send");
         
-
+println("Xively -> start sending");
         delay(500);
         client.print("{");
         client.print("  \"method\" : \"put\",");
-        client.print("  \"resource\" : \"/feeds/");
+        client.print("  \"resource\" : \"/v2/feeds/");    //2015.11.15 changed
         client.print(FEED_ID);
         client.print("\",");
         client.print("  \"params\" : {},");
@@ -159,7 +168,7 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         client.print("\"},");
         client.print("  \"body\" :");
         client.print("    {");
-        client.print("      \"version\" : \"1.0.0\",");
+       client.print("      \"version\" : \"1.0.0\",");
         client.print("      \"datastreams\" : [");
         
         client.print("        {");
@@ -203,11 +212,14 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
       
         statusPrint("Send Done");
         println("Connect Close");
+//println("Xively -> send finish");
         result=0;
-        twitterStr(msg);
+
+//        twitterStr(msg);
     } 
     else 
     {
+println("Xively -> Fail");
         statusPrint("Fail");
         // Connection failed
         //Serial.println("connection failed");
@@ -224,17 +236,20 @@ int sendToXively(float temperature, float humidity, int pirMove,int distance){
         String msgstr = "23 WM Xively response Client:" +c;
         statusPrint("Response from client");
         
-        Serial.print(c,HEX);
+//        if (Serial.available(){        
+//            Serial.print(c,HEX);
+//        }
         twitterStr(msgstr);
     }
 
-    if (!client.connected()) 
-    {
-        Serial.println();
-        statusPrint("disc X Stop");
-        client.stop();
-        twitterStr("231 WM Xively not connected ");
-    }
+//    if (!client.connected()) 
+//    {
+//        Serial.println();
+//        statusPrint("disc X Stop");
+//println("Xively --> disconnected");
+//        client.stop();
+//        twitterStr("231 WM Xively not connected ");
+//    }
 
   
     client.stop();
@@ -293,22 +308,30 @@ unsigned long lastTime = 0UL;
 String timeStr;
 String newTimeStr;
 String emptyStr;
-#define ONE_DAY_MILLIS (24 * 60 * 60 * 1000)
+#define ONE_DAY_MILLIS (8 * 60 * 60 * 1000)
 unsigned long lastSync = millis();
+char timebuf[60];
+
 
 void setup() {
     
    //rtc.begin(&UDPClient, "3.tw.pool.ntp.org");
    //rtc.setTimeZone(+8); // gmt offset
-//   Serial.begin(9600);
-  
+
+//----1102
+ Serial.begin(9600);
+ Serial.println("init start");
+ println(Version);
+ print("IP:");
+ println(WiFi.localIP());
+ 
   lcd = new LiquidCrystal_I2C(0x27, 20,4);
   
     lcd->init();                      // initialize the lcd
     lcd->backlight();
     lcd->clear();
   
-  
+ println("InitLED"); 
   lc = new LedControl(A0,A2,A1,LedMatrics);
   for (int i=0; i<LedMatrics; i++){
     lc->shutdown(i,false);
@@ -327,6 +350,7 @@ void setup() {
         buf[i] = ' ';
     }
     
+println("initLCD");
   lcd->setCursor(3,0);
   lcd->print("Weather monitor");
   lcd->setCursor(6,1);
@@ -338,12 +362,40 @@ void setup() {
    
     scrollMessage("Weather Monitor. by cnwang ");
 
+
+delay(3000);
+lcd->clear();
+lcd->setCursor(0,0);
+lcd->print("SSID:");
+lcd->print(WiFi.SSID());
+lcd->setCursor(0,1);
+lcd->print("IP:");
+lcd->print(WiFi.localIP());
+lcd->setCursor(0,2);
+lcd->print("RSSI:");
+switch (WiFi.RSSI()){
+    case 1:
+        lcd->print("WIFI chip fail");
+        break;
+    case 2:
+        lcd->print("timeout");
+        break;
+    default:
+        lcd->print(WiFi.RSSI());
+        lcd->print(" dB");
+}
+
+//lcd->print(WiFi.RSSI());
+println("SyncTime");
+
     Time.zone(+8);
-    Spark.syncTime();
+    Particle.syncTime();
     lastSync = millis();
     
     TimeString();
-
+    lcd->setCursor(0,3);
+    lcd->print(timebuf);
+println("set port");
     dht.begin();
     pinMode(D7, OUTPUT);
     ledStatus(D7, 3,1000);
@@ -360,6 +412,14 @@ void setup() {
         emptyStr +=" ";
     }
     String twStart = "0 Weather Moniotr Start (" + String(Version) + ")";    
+    
+    
+//== 1102
+println ("Setup OK");
+println(twStart);
+println (timeStr);
+//==
+    
    twitterStr(twStart);
 }
 
@@ -368,21 +428,26 @@ int phase = 0;
 int bufPos=0;
 int bufLen=0;
 char buf2[]="                                                      ";
-char timebuf[60];
 char Accbuf[40];
 
 
 
 void loop() {
 
-        
+    if (WiFi.ready()) {
+        println("WIFI READY");
+    } else {
+        println ("WIFI not READY");
+    }
         
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
         lcd->init();  
-        Spark.syncTime();
+        Particle.syncTime();
         lastSync = millis();
         twitterStr("11 WM Time Sync");
+        
+println ("LOOP Sync Time");
         
     }
     if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
@@ -392,21 +457,30 @@ void loop() {
         lcdBacklightOn();
         
         lastUp=millis();
-        
+println("Read");        
         statusPrint ("Reading DHT");
         f = 0;
         t = dht.readTemperature();
         h = dht.readHumidity();
         
         statusPrint ("Read OK");
-        String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5);
-        
-        //twitterStr(twmsg);
+        String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5)+" P="+String(pirMove).substring(0,3);
+
+println("Start to twitter");
+        twitterStr(twmsg);
+println(twmsg);
+println("Twitter done");
         
         //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
         if (h<100) {
+            
+// temperary disable xively. 2015.09.23            
+println("SendToXively");
             sendToXivelyWithLed(led, t,h,pirMove,0);
+print("Twitter ->");
+println(twmsg);
+            twitterStr(twmsg);
         }
             //} //else {
             // if (h<100) {
@@ -455,7 +529,7 @@ void loop() {
     lcd->setCursor(19,3);
     lcd->print(loopStr[loopIdx++]);
     if (loopIdx>13) loopIdx=0;
-    
+   
     TimeString();
     sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
     bufLen = strlen(buf);
@@ -470,11 +544,12 @@ void loop() {
     }
     *(buf2+bufPos)=0;
     if (bufPos>=bufLen) bufPos=0;
-    
+println ("Scroll Msg");    
     scrollMessage(buf2);
-    
+println(buf2);    
     
     if ((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) {
+println ("Read PIR");
         int k = digitalRead(pirPin);
         lastMoveUp = millis();
      
@@ -728,6 +803,8 @@ void twitterStr(String twitterMsg){
     TCPClient twclient;
     String twitterMsgStamp = twitterMsg+" " + timeStr;
 
+    return;
+//println(twitterMsgStamp);
   
     //delay(100);
 
@@ -742,6 +819,7 @@ void twitterStr(String twitterMsg){
         twclient.print("&status=");
         twclient.println(twitterMsgStamp); 
     } else {
+println ("Twitter fial");
         statusPrint ("Fail to twitter");
     }
 }
