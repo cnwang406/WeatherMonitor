@@ -1,3 +1,6 @@
+// This #include statement was automatically added by the Particle IDE.
+#include "thingspeak/thingspeak.h"
+
 // This #include statement was automatically added by the Spark IDE.
 //#include "XivelyDatastream.h"
 
@@ -5,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.995a40"
+#define Version "0.996a62"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -31,7 +34,8 @@ int led=7;
 #define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 
 //Xively API key
-#define XIVELY_API_KEY "4KLae7f8WIhUdUJvF0JxVZ42sWuBWE8VJHt9UJua9PuZP8uS"
+//#define XIVELY_API_KEY "4KLae7f8WIhUdUJvF0JxVZ42sWuBWE8VJHt9UJua9PuZP8uS"
+#define XIVELY_API_KEY "vUrEkZzBqgplLObYyj5jyrjrvBP6sXb39cdJLNksXUHdcigh"
 #define FEED_ID "19367269"
 
 // Twitter API Key
@@ -39,10 +43,18 @@ int led=7;
 // Twitter Proxy
 #define LIB_DOMAIN "arduino-tweet.appspot.com"
 
+// ThinkSpeak parts.
+byte TSserver[]  = { 184, 106, 153, 149 }; // ThingSpeak IP Address: 184.106.153.149
+#define THINKSPEAKTOKEN "OS7CAQM44RGB0AI2"
+#define THINKSPEAKTWITTERTOKEN "TGOF09S158REUUZC"
+#define THINKSPEAKSERVER "api.thingspeak.com"
+TCPClient TSclient;
+//TCPServer server = TCPServer(8081);
+ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 
 
 #define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
-#define CHECK_PIR_PERIOD    30       //check PIR every 5 sec.
+#define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
 #define LCD_BACKLIGHT_PERIOD    10  //lcd backlight last 10 sec.
 
 #define pirLEDPin D6
@@ -74,10 +86,6 @@ int ledIntensity = 15;
 
 
 
-
-
-
-
 void print(String str) {
     // Serial.begin(9600);
     // Serial.print(str);
@@ -96,38 +104,11 @@ TCPServer server = TCPServer(8081);
 //--------------------------------------
 //TCPClient client;
 
-TCPClient client;   //for Xively use
 
 //-----------
-/*
-char humidityId[] = "Humidity";
-char temperatureId[] = "temperature";
-char pirId[] = "PIRsensor";
-
-XivelyDatastream datastreams[] = {
-  XivelyDatastream(humidityId, strlen(sensorId), DATASTREAM_FLOAT),
-  XivelyDatastream(temperatureId, strlen(bufferId), DATASTREAM_FLOAT),
-  XivelyDatastream(pirId,strlen(bufferId), DATASTREAM_INT)
-};
-*/
-/*XivelyFeed feed(FEED_ID, datastreams, 3 );/* number of datastreams */
-/*
-XivelyClient xivelyclient(client);
-
-int sendToXively2(float temperature, float humidity, int pirMove,int distance){
-
-    datastreams[0].setFloat(humidity);
-    datastreams[1].setFloat(temperature);
-    datastreams[2].setInt(pirMove);
-    int ret = xivelyclient.put(feed, XIVELY_API_KEY);
-    
-    return ret;
-}
-
-*/
-//-----------
-void sendToXivelyWithLed(int led, float temperature, float humidity, int pirMove,int distance){
-    int r = sendToXively(temperature, humidity, pirMove,distance);
+void sendToThingSpeakWithLed(int led, float temperature, float humidity, int pirMove,int distance){
+    //int r = sendToXively(temperature, humidity, pirMove,distance);
+    int r = writeToThingSpeak(temperature, humidity, pirMove, distance);
     if (r==0){
         ledStatus(led, 1, 100);    
     } else {
@@ -135,128 +116,7 @@ void sendToXivelyWithLed(int led, float temperature, float humidity, int pirMove
     }
 }
 
-int sendToXively(float temperature, float humidity, int pirMove,int distance){
-    //TCPClient client = server.available();
-    int result=0;
-    
-    //return 1;
-    
-    statusPrint("ConnTo Xively...");
-println("Xively -> connecting");
-    //twitterStr("21 WM connect to Xively ");
-    client.flush();
-    
-    String msg = "22 WM Sent to X T=" + String(temperature).substring(0,5) + " RH="+String(humidity).substring(0,5) + " P=" + String(pirMove);
-    
-    //temperature = getTemperature();
-    if (client.connect("api.xively.com", 8081)) 
-    {
-println("Xively -> connected");
-        statusPrint("Start send");
-        
-println("Xively -> start sending");
-        delay(500);
-        client.print("{");
-        client.print("  \"method\" : \"put\",");
-        client.print("  \"resource\" : \"/v2/feeds/");    //2015.11.15 changed
-        client.print(FEED_ID);
-        client.print("\",");
-        client.print("  \"params\" : {},");
-        client.print("  \"headers\" : {\"X-ApiKey\":\"");
-        client.print(XIVELY_API_KEY);
-        delay(500);
-        client.print("\"},");
-        client.print("  \"body\" :");
-        client.print("    {");
-       client.print("      \"version\" : \"1.0.0\",");
-        client.print("      \"datastreams\" : [");
-        
-        client.print("        {");
-        client.print("          \"id\" : \"Humidity\",");
-        client.print("          \"current_value\" : \"");
-        client.print(humidity);
-        delay(500);
-        client.print("\"");
-        client.print("        },");
-        
-        client.print("        {");
-        client.print("          \"id\" : \"temperature\",");
-        client.print("          \"current_value\" : \"");
-        client.print(temperature);
-        delay(500);
-        client.print("\"");
-        client.print("        },");
-        
-        //client.print("    {");
-        //client.print("          \"id\" : \"SRF\",");
-        //client.print("          \"current_value\" : \"");
-        //client.print(distance);
-        //delay(500);
-        //client.print("\"");
-        //client.print("        },");
-        
-        client.print("        {");
-        client.print("          \"id\" : \"PIRsensor\",");
-        client.print("          \"current_value\" : \"");
-        client.print(pirMove);
-        delay(500);
-        client.print("\"");
-        client.print("        }");
-       
-        client.print("      ]");
-        client.print("    },");
-        client.print("  \"token\" : \"0x12345\"");
-        delay(500);
-        client.print("}");
-        client.println();
-      
-        statusPrint("Send Done");
-        println("Connect Close");
-//println("Xively -> send finish");
-        result=0;
 
-//        twitterStr(msg);
-    } 
-    else 
-    {
-println("Xively -> Fail");
-        statusPrint("Fail");
-        // Connection failed
-        //Serial.println("connection failed");
-        result=1;
-        twitterStr("221 WM send Fail ");
-    }
-
-
-    if (client.available()) 
-    {
-        // Read response
-        
-        char c= client.read();
-        String msgstr = "23 WM Xively response Client:" +c;
-        statusPrint("Response from client");
-        
-//        if (Serial.available(){        
-//            Serial.print(c,HEX);
-//        }
-        twitterStr(msgstr);
-    }
-
-//    if (!client.connected()) 
-//    {
-//        Serial.println();
-//        statusPrint("disc X Stop");
-//println("Xively --> disconnected");
-//        client.stop();
-//        twitterStr("231 WM Xively not connected ");
-//    }
-
-  
-    client.stop();
-    
-    return result;
-   // delay (2000);  // delete 2014 10 04
-}
 
 //============================================
 void ledStatus(int ledPin, int x, int t)
@@ -418,9 +278,11 @@ println("set port");
 println ("Setup OK");
 println(twStart);
 println (timeStr);
-//==
-    
-   twitterStr(twStart);
+   
+   //sendToThingSpeakWithLed(led,26.0,67.0,1,0);
+   
+     //twitterStr(twStart);
+ 
 }
 
 int phase = 0;
@@ -445,7 +307,7 @@ void loop() {
         lcd->init();  
         Particle.syncTime();
         lastSync = millis();
-        twitterStr("11 WM Time Sync");
+        //twitterStr("11 WM Time Sync");
         
 println ("LOOP Sync Time");
         
@@ -466,21 +328,17 @@ println("Read");
         statusPrint ("Read OK");
         String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5)+" P="+String(pirMove).substring(0,3);
 
-println("Start to twitter");
-        twitterStr(twmsg);
-println(twmsg);
-println("Twitter done");
-        
+        //twitterStr(twmsg);
+
         //delay(2000); //delete 2014 10 04
         //if (distanceAcc>0){
         if (h<100) {
-            
+         sendToThingSpeakWithLed(led, t,h,pirMove,0)   ; 
 // temperary disable xively. 2015.09.23            
-println("SendToXively");
-            sendToXivelyWithLed(led, t,h,pirMove,0);
-print("Twitter ->");
-println(twmsg);
-            twitterStr(twmsg);
+//            sendToXivelyWithLed(led, t,h,pirMove,0);
+//            sendToThinkSpeakWithLed(led, t,h,pirMove,0);
+            
+            //twitterStr(twmsg);
         }
             //} //else {
             // if (h<100) {
@@ -513,15 +371,6 @@ println(twmsg);
         //lcd->print( " ");
         lcd->print(++dataSent);
         
-    //    TimeString();
-        // check hour 
-    //    setAllLedIntensity(ledIntensity);
-        
-        //sprintf(timebuf, "%s", timeStr.toCharArray);
-         //sprintf(buf, "T=%hi.%01hi%cC, H=%i.%01i%%, %s ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
-     //    sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
-     //    bufPos=0;
-     //    bufLen = strlen(buf);
 
         lcdBacklightOff();
     }
@@ -544,12 +393,9 @@ println(twmsg);
     }
     *(buf2+bufPos)=0;
     if (bufPos>=bufLen) bufPos=0;
-println ("Scroll Msg");    
     scrollMessage(buf2);
-println(buf2);    
-    
+//read PIR
     if ((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) {
-println ("Read PIR");
         int k = digitalRead(pirPin);
         lastMoveUp = millis();
      
@@ -800,17 +646,20 @@ void statusPrint(String statusStr) {
 
 void twitterStr(String twitterMsg){
     
+    return;
+    updateTwitterStatus(twitterMsg);
     TCPClient twclient;
     String twitterMsgStamp = twitterMsg+" " + timeStr;
 
-    return;
+    
 //println(twitterMsgStamp);
   
     //delay(100);
 
     if(twclient.connect(LIB_DOMAIN, 80) ) {
         twclient.println("POST /update HTTP/1.0");
-        twclient.println("Host: " LIB_DOMAIN);
+        twclient.print("Host: ");
+        twclient.println(LIB_DOMAIN);
         twclient.print("Content-Length: ");
         twclient.println(twitterMsgStamp.length()+strlen(TOKEN)+14);
         twclient.println();
@@ -822,4 +671,81 @@ void twitterStr(String twitterMsg){
 println ("Twitter fial");
         statusPrint ("Fail to twitter");
     }
+}
+
+
+int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
+
+bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
+    bool valSent2 = thingspeak.sendValues();
+    
+    bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
+    bool valSent1 = thingspeak.sendValues();
+    bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
+    bool valSent3 = thingspeak.sendValues();
+    if (valSent1 && valSent2 && valSent3) {
+        statusPrint("Sent to TS done"+String(temperature,1));
+        return 0;
+    }else {
+        statusPrint("Sent to TS Fail");
+        return 1;
+    }
+
+    return 1;
+    
+    //String tsData = "field1=" + String(humidity,DEC)+"&field2="+String(temperature,DEC)+"&field3="+String(pirMove,DEC);
+    String tsData ="field1=70&field2=26&field3=1";
+    TSclient.connect("api.thingspeak.com",80);
+    TSclient.flush();
+    
+    TSclient.println("POST /update HTTP/1.1");
+    TSclient.println("Host: api.thingspeak.com");
+    TSclient.println("Connection: close");
+    TSclient.println("X-THINGSPEAKAPIKEY: OS7CAQM44RGB0AI2");
+    TSclient.println("Content-Type: application/x-www-form-urlencoded");
+    TSclient.print("Content-Length: ");
+    
+    TSclient.print(tsData.length());
+    TSclient.println("");
+    statusPrint (tsData+tsData.length());
+    TSclient.println(tsData);
+    TSclient.println();
+    
+   TSclient.stop();
+    
+}
+
+
+void updateTwitterStatus(String tsData)
+{
+    
+    return ;
+    //TSclient.connect("api.thingspeak.com",80);
+    TSclient.connect("api.thingspeak.com",80);
+    
+  if (TSclient.available() && tsData.length() > 0)
+  { 
+    // Create HTTP POST Data
+    tsData = "api_key=TGOF09S158REUUZC&status="+tsData;
+    
+        
+    TSclient.println("POST /apps/thingtweet/1/statuses/update HTTP/1.1");
+    TSclient.println("Host: api.thingspeak.com");
+    TSclient.println("Connection: close");
+    TSclient.println("Content-Type: application/x-www-form-urlencoded");
+    TSclient.print("Content-Length: ");
+    TSclient.println(tsData.length());
+    TSclient.println("");
+
+    TSclient.print(tsData);
+    
+    //lastTweetTime = millis();
+  }
+  else
+  {
+    // Serial.println("Connection Failed.");   
+    // Serial.println();
+    
+    // lastTweetTime = millis();
+  }
 }
