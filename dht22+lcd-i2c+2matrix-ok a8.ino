@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.996a62"
+#define Version "0.997a67"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -33,10 +33,6 @@ int led=7;
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 
-//Xively API key
-//#define XIVELY_API_KEY "4KLae7f8WIhUdUJvF0JxVZ42sWuBWE8VJHt9UJua9PuZP8uS"
-#define XIVELY_API_KEY "vUrEkZzBqgplLObYyj5jyrjrvBP6sXb39cdJLNksXUHdcigh"
-#define FEED_ID "19367269"
 
 // Twitter API Key
 #define TOKEN "2927024191-XLHyWduCLFMP0ouEvhxzBfZ86ATqSFBK9Rm3cDK"
@@ -151,6 +147,7 @@ unsigned long lastUp;
 unsigned long lastMove;
 unsigned long lastMoveUp;
 int pirMove=0;
+int oldPir=0;
 char loopStr[]="|\\-/!@#$%^&*";
 int loopIdx = 0;
 int dataSent=0;
@@ -267,22 +264,27 @@ println("set port");
     
     ledStatus(D5, 1,100);   
     
+    
+//Set thingspeak    
+     thingspeak.setConnectionTimeout(1500);
+     
+//writeToThingSpeak(50.5,50.5,3,0);
+     
+    
     emptyStr="";
     for (int i=0;i<19;i++){
         emptyStr +=" ";
     }
     String twStart = "0 Weather Moniotr Start (" + String(Version) + ")";    
     
+    if (updateTwitterStatus(twStart)==0) {
+        statusPrint ("TWITTER sent");
+    } else {
+        statusPrint ("TWITTER failed");
+    }
     
-//== 1102
-println ("Setup OK");
-println(twStart);
-println (timeStr);
-   
-   //sendToThingSpeakWithLed(led,26.0,67.0,1,0);
-   
-     //twitterStr(twStart);
- 
+    
+
 }
 
 int phase = 0;
@@ -297,9 +299,9 @@ char Accbuf[40];
 void loop() {
 
     if (WiFi.ready()) {
-        println("WIFI READY");
+        statusPrint("WIFI READY");
     } else {
-        println ("WIFI not READY");
+        statusPrint ("WIFI not READY");
     }
         
     if (millis() - lastSync > ONE_DAY_MILLIS) {
@@ -309,7 +311,7 @@ void loop() {
         lastSync = millis();
         //twitterStr("11 WM Time Sync");
         
-println ("LOOP Sync Time");
+        statusPrint ("Time Sync");
         
     }
     if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
@@ -319,7 +321,6 @@ println ("LOOP Sync Time");
         lcdBacklightOn();
         
         lastUp=millis();
-println("Read");        
         statusPrint ("Reading DHT");
         f = 0;
         t = dht.readTemperature();
@@ -328,29 +329,15 @@ println("Read");
         statusPrint ("Read OK");
         String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5)+" P="+String(pirMove).substring(0,3);
 
-        //twitterStr(twmsg);
-
-        //delay(2000); //delete 2014 10 04
-        //if (distanceAcc>0){
         if (h<100) {
          sendToThingSpeakWithLed(led, t,h,pirMove,0)   ; 
-// temperary disable xively. 2015.09.23            
-//            sendToXivelyWithLed(led, t,h,pirMove,0);
-//            sendToThinkSpeakWithLed(led, t,h,pirMove,0);
-            
-            //twitterStr(twmsg);
         }
-            //} //else {
-            // if (h<100) {
-            //     sendToXivelyWithLed(led, t,h,pirMove,-1);
-            // }
-        //}
+        if (pirMove <>oldPir) {
+            updateTwitterStatus (twmsg);
+            oldPir=pirMove;
+        }
         pirMove=0;
-            // distanceAcc=0;
-            // distanceCount=0;
-        //sendToXively2(t,h); 
-        //======
-       
+
         delay(500);
         lcd->setCursor(0,1);
         lcd->print(emptyStr);
@@ -394,7 +381,6 @@ println("Read");
     *(buf2+bufPos)=0;
     if (bufPos>=bufLen) bufPos=0;
     scrollMessage(buf2);
-//read PIR
     if ((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) {
         int k = digitalRead(pirPin);
         lastMoveUp = millis();
@@ -411,11 +397,6 @@ println("Read");
             pirMove+=1;
             
         }
-       // sprintf(Accbuf,"K=%d A=%d",k,pirMove);
-        //lcd->setCursor(8,3);
-        //lcd->print (Accbuf);
-     
-        
         
     } // check PIR every 5 seconds
 
@@ -644,46 +625,16 @@ void statusPrint(String statusStr) {
 
 }
 
-void twitterStr(String twitterMsg){
-    
-    return;
-    updateTwitterStatus(twitterMsg);
-    TCPClient twclient;
-    String twitterMsgStamp = twitterMsg+" " + timeStr;
-
-    
-//println(twitterMsgStamp);
-  
-    //delay(100);
-
-    if(twclient.connect(LIB_DOMAIN, 80) ) {
-        twclient.println("POST /update HTTP/1.0");
-        twclient.print("Host: ");
-        twclient.println(LIB_DOMAIN);
-        twclient.print("Content-Length: ");
-        twclient.println(twitterMsgStamp.length()+strlen(TOKEN)+14);
-        twclient.println();
-        twclient.print("token=");
-        twclient.print(TOKEN);
-        twclient.print("&status=");
-        twclient.println(twitterMsgStamp); 
-    } else {
-println ("Twitter fial");
-        statusPrint ("Fail to twitter");
-    }
-}
 
 
 int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
 
-bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
-    bool valSent2 = thingspeak.sendValues();
-    
+    bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
     bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
-    bool valSent1 = thingspeak.sendValues();
     bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
-    bool valSent3 = thingspeak.sendValues();
-    if (valSent1 && valSent2 && valSent3) {
+    
+    bool valSent = thingspeak.sendValues();
+    if ( valSent) {
         statusPrint("Sent to TS done"+String(temperature,1));
         return 0;
     }else {
@@ -691,61 +642,44 @@ bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
         return 1;
     }
 
-    return 1;
-    
-    //String tsData = "field1=" + String(humidity,DEC)+"&field2="+String(temperature,DEC)+"&field3="+String(pirMove,DEC);
-    String tsData ="field1=70&field2=26&field3=1";
-    TSclient.connect("api.thingspeak.com",80);
-    TSclient.flush();
-    
-    TSclient.println("POST /update HTTP/1.1");
-    TSclient.println("Host: api.thingspeak.com");
-    TSclient.println("Connection: close");
-    TSclient.println("X-THINGSPEAKAPIKEY: OS7CAQM44RGB0AI2");
-    TSclient.println("Content-Type: application/x-www-form-urlencoded");
-    TSclient.print("Content-Length: ");
-    
-    TSclient.print(tsData.length());
-    TSclient.println("");
-    statusPrint (tsData+tsData.length());
-    TSclient.println(tsData);
-    TSclient.println();
-    
-   TSclient.stop();
-    
 }
+TCPClient twitterClient;
 
-
-void updateTwitterStatus(String tsData)
+int updateTwitterStatus(String tweetData)
 {
+    TCPClient twitterClient;
+    String tweetAPIKey = THINKSPEAKTWITTERTOKEN;
     
-    return ;
-    //TSclient.connect("api.thingspeak.com",80);
-    TSclient.connect("api.thingspeak.com",80);
-    
-  if (TSclient.available() && tsData.length() > 0)
-  { 
-    // Create HTTP POST Data
-    tsData = "api_key=TGOF09S158REUUZC&status="+tsData;
-    
-        
-    TSclient.println("POST /apps/thingtweet/1/statuses/update HTTP/1.1");
-    TSclient.println("Host: api.thingspeak.com");
-    TSclient.println("Connection: close");
-    TSclient.println("Content-Type: application/x-www-form-urlencoded");
-    TSclient.print("Content-Length: ");
-    TSclient.println(tsData.length());
-    TSclient.println("");
+    // Connecting and sending Tweet data to Thingspeak
+    if(twitterClient.connect("api.thingspeak.com", 80))
+    {
+        tweetData = "api_key="+tweetAPIKey+"&status="+tweetData;
 
-    TSclient.print(tsData);
-    
-    //lastTweetTime = millis();
-  }
-  else
-  {
-    // Serial.println("Connection Failed.");   
-    // Serial.println();
-    
-    // lastTweetTime = millis();
-  }
+        twitterClient.print("POST /apps/thingtweet/1/statuses/update HTTP/1.1\n");
+        twitterClient.print("Host: api.thingspeak.com\n");
+        twitterClient.print("Connection: close\n");
+        twitterClient.print("Content-Type: application/x-www-form-urlencoded\n");
+        twitterClient.print("Content-Length: ");
+        twitterClient.print(tweetData.length());
+        twitterClient.print("\n\n");
+
+        twitterClient.println(tweetData); //the ""ln" is important here.
+
+        // This delay is pivitol without it the TCP client will often close before the data is fully sent
+        delay(200);
+        
+        return 0;
+        
+    }
+    else{
+        return 1;
+        // Failed to connect to Thingspeak
+    }
+
+    if(!twitterClient.connected()){
+        twitterClient.stop();
+    }
+    twitterClient.flush();
+    twitterClient.stop();
 }
+
