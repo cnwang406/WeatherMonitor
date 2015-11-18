@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a67"
+#define Version "0.997a71"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -82,17 +82,17 @@ int ledIntensity = 15;
 
 
 
-void print(String str) {
-    // Serial.begin(9600);
-    // Serial.print(str);
-    // Serial.end();
-}
-void println(String str) {
-    // Serial.begin(9600);
-    // Serial.println(str);
-    // Serial.end();
+// void print(String str) {
+//     // Serial.begin(9600);
+//     // Serial.print(str);
+//     // Serial.end();
+// }
+// void println(String str) {
+//     // Serial.begin(9600);
+//     // Serial.println(str);
+//     // Serial.end();
 
-}
+// }
 
 
 TCPServer server = TCPServer(8081);
@@ -176,11 +176,11 @@ void setup() {
    //rtc.setTimeZone(+8); // gmt offset
 
 //----1102
- Serial.begin(9600);
- Serial.println("init start");
- println(Version);
- print("IP:");
- println(WiFi.localIP());
+//  Serial.begin(9600);
+//  Serial.println("init start");
+//  println(Version);
+//  print("IP:");
+//  println(WiFi.localIP());
  
   lcd = new LiquidCrystal_I2C(0x27, 20,4);
   
@@ -188,7 +188,7 @@ void setup() {
     lcd->backlight();
     lcd->clear();
   
- println("InitLED"); 
+ // InitLED 
   lc = new LedControl(A0,A2,A1,LedMatrics);
   for (int i=0; i<LedMatrics; i++){
     lc->shutdown(i,false);
@@ -207,7 +207,7 @@ void setup() {
         buf[i] = ' ';
     }
     
-println("initLCD");
+// Init LCD
   lcd->setCursor(3,0);
   lcd->print("Weather monitor");
   lcd->setCursor(6,1);
@@ -220,30 +220,30 @@ println("initLCD");
     scrollMessage("Weather Monitor. by cnwang ");
 
 
-delay(3000);
-lcd->clear();
-lcd->setCursor(0,0);
-lcd->print("SSID:");
-lcd->print(WiFi.SSID());
-lcd->setCursor(0,1);
-lcd->print("IP:");
-lcd->print(WiFi.localIP());
-lcd->setCursor(0,2);
-lcd->print("RSSI:");
-switch (WiFi.RSSI()){
-    case 1:
-        lcd->print("WIFI chip fail");
-        break;
-    case 2:
-        lcd->print("timeout");
-        break;
-    default:
-        lcd->print(WiFi.RSSI());
-        lcd->print(" dB");
-}
+    delay(3000);
+    lcd->clear();
+    lcd->setCursor(0,0);
+    lcd->print("SSID:");
+    lcd->print(WiFi.SSID());
+    lcd->setCursor(0,1);
+    lcd->print("IP:");
+    lcd->print(WiFi.localIP());
+    lcd->setCursor(0,2);
+    lcd->print("RSSI:");
+    switch (WiFi.RSSI()){
+        case 1:
+            lcd->print("WIFI chip fail");
+            break;
+        case 2:
+            lcd->print("timeout");
+            break;
+        default:
+            lcd->print(WiFi.RSSI());
+            lcd->print(" dB");
+    }
 
 //lcd->print(WiFi.RSSI());
-println("SyncTime");
+    //SyncTime
 
     Time.zone(+8);
     Particle.syncTime();
@@ -252,7 +252,8 @@ println("SyncTime");
     TimeString();
     lcd->setCursor(0,3);
     lcd->print(timebuf);
-println("set port");
+
+//Init Port
     dht.begin();
     pinMode(D7, OUTPUT);
     ledStatus(D7, 3,1000);
@@ -275,6 +276,7 @@ println("set port");
     for (int i=0;i<19;i++){
         emptyStr +=" ";
     }
+    statusPrint("TWITTER......");
     String twStart = "0 Weather Moniotr Start (" + String(Version) + ")";    
     
     if (updateTwitterStatus(twStart)==0) {
@@ -298,11 +300,6 @@ char Accbuf[40];
 
 void loop() {
 
-    if (WiFi.ready()) {
-        statusPrint("WIFI READY");
-    } else {
-        statusPrint ("WIFI not READY");
-    }
         
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
@@ -315,7 +312,13 @@ void loop() {
         
     }
     if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
-          
+        if (WiFi.ready()) {
+            statusPrint("WIFI READY");
+        } else {
+            statusPrint ("WIFI not READY");
+        }
+
+
         ledStatus(led, 1,300);
         //lcd->backlight();
         lcdBacklightOn();
@@ -330,15 +333,21 @@ void loop() {
         String twmsg = "12 WM read DHT ok T="+ String(t).substring(0,5)+ " RH="+String(h).substring(0,5)+" P="+String(pirMove).substring(0,3);
 
         if (h<100) {
-         sendToThingSpeakWithLed(led, t,h,pirMove,0)   ; 
+         sendToThingSpeakWithLed(led, t,h,pirMove,0); 
         }
-        if (pirMove <>oldPir) {
-            updateTwitterStatus (twmsg);
+        if (pirMove!=oldPir) {
+            lcdBacklightOn();
+            if (updateTwitterStatus(twmsg)==0) {
+                statusPrint ("TWITTER sent");
+            } else {
+                statusPrint ("TWITTER failed");
+            }
             oldPir=pirMove;
+            lcdBacklightOff();
         }
         pirMove=0;
 
-        delay(500);
+        //delay(500);
         lcd->setCursor(0,1);
         lcd->print(emptyStr);
         lcd->setCursor(0,1);
@@ -628,7 +637,8 @@ void statusPrint(String statusStr) {
 
 
 int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
-
+    lcdBacklightOn();
+    statusPrint ("send to TS......");
     bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
     bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
     bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
@@ -641,12 +651,13 @@ int writeToThingSpeak(float temperature, float humidity, int pirMove,int distanc
         statusPrint("Sent to TS Fail");
         return 1;
     }
+    lcdBacklightOff();
 
 }
-TCPClient twitterClient;
 
 int updateTwitterStatus(String tweetData)
 {
+    int result;
     TCPClient twitterClient;
     String tweetAPIKey = THINKSPEAKTWITTERTOKEN;
     
@@ -668,12 +679,12 @@ int updateTwitterStatus(String tweetData)
         // This delay is pivitol without it the TCP client will often close before the data is fully sent
         delay(200);
         
-        return 0;
+        result= 0;
         
     }
     else{
-        return 1;
-        // Failed to connect to Thingspeak
+        result= 1;
+        
     }
 
     if(!twitterClient.connected()){
@@ -681,5 +692,6 @@ int updateTwitterStatus(String tweetData)
     }
     twitterClient.flush();
     twitterClient.stop();
+    return result;
 }
 
