@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a83"
+#define Version "0.997a84"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -339,13 +339,13 @@ void loop() {
 
         if (h<100) {    // only send valid data
             sendToThingSpeakWithLed(led, t,h,pirMove,0);
-            updateTwitterStatus2(twmsg);
+            //updateTwitterStatus2(twmsg);
         }
         
 // twitter if PIR changed
         if (pirMove!=oldPir) {
             
-            updateTwitterStatus2(twmsg + " moved!");
+            updateTwitterStatus2(twmsg );
             oldPir=pirMove;
 
         }
