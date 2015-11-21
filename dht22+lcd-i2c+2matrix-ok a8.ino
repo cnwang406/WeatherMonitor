@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a84"
+#define Version "0.997a85"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -301,6 +301,9 @@ void loop() {
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
         lcd->init();  
+        lcd->setCursor(3,0);
+        lcd->print("Weather monitor");
+
         Particle.syncTime();
         lastSync = millis();
         
@@ -352,6 +355,10 @@ void loop() {
         pirMove=0;
 
         //delay(500);
+        lcd->setCursor(0,0);
+        lcd->print("    Weather monitor");
+
+
         lcd->setCursor(0,1);
         lcd->print(emptyStr);
         lcd->setCursor(0,1);
@@ -658,7 +665,7 @@ int writeToThingSpeak(float temperature, float humidity, int pirMove,int distanc
     
     bool valSent = thingspeak.sendValues();
     if ( valSent) {
-        statusPrint("Sent to TS done"+String(pirMove,DEC) + "/" + String(oldPir,DEC));
+        statusPrint("Sent to TS done");
         return 0;
     }else {
         statusPrint("Sent to TS Fail       ");
