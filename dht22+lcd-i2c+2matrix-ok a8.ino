@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a85"
+#define Version "0.997a88"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -62,6 +62,8 @@ ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 
 #define breathLED D5
 
+#define WIFIRETRY 3         // will reboot WIFI after failed 
+int wifiRetries = 0;
 
 // SRF-05
 const int numOfReadings = 3;                   // number of readings to take/ items in the array
@@ -173,6 +175,8 @@ String emptyStr;
 unsigned long lastSync = millis();
 char timebuf[60];
 
+#define MINIUMTWITTERPERIOD ( 60 *60 * 1000)         // twitter at least 1 hour a time
+unsigned long lastTwitter = millis();
 
 void setup() {
   
@@ -275,12 +279,8 @@ void setup() {
         emptyStr +=" ";
     }
     statusPrint("TWITTER......");
-    String twStart = "0 Weather Moniotr Start (" + String(Version) + ")";    
+    String twStart = "Weather Moniotr Start (" + String(Version) + ")";    
 
-    //ThingSpeakTweet3("WM Go3.51" );
-    
-    
-    
     updateTwitterStatus2(twStart);
 
 
@@ -318,7 +318,7 @@ void loop() {
         lastUp=millis();
         ledStatus(led, 1,300);
         //updateTwitterStatus2("lalala");
-        
+
         switch (WiFi.RSSI()){
         case 1:
             statusPrint("WIFI chip fail");
@@ -329,6 +329,17 @@ void loop() {
         default:
             String wifiStr = String(WiFi.SSID()) + "/" + String(WiFi.RSSI()) + " dB";
             statusPrint(wifiStr);
+        }
+
+        if (wifiRetries == -1) {
+            if (WiFi.ready()) {
+                updateTwitterStatus2("wifi module reboot ok");
+                statusPrint("wifi Rebooted ok");
+                wifiRetries=0;
+            } else {
+                // wifi reboot, but has not readied yet
+                statusPrint("Wifi not ready");
+            }
         }
 
 // reading DHT
@@ -346,18 +357,17 @@ void loop() {
         }
         
 // twitter if PIR changed
-        if (pirMove!=oldPir) {
+        if (((pirMove>0)?1:0 !=oldPir) || ( (millis()-lastTwitter) >MINIUMTWITTERPERIOD) || ( millis()<lastTwitter) ){
             
             updateTwitterStatus2(twmsg );
-            oldPir=pirMove;
-
+        
+            oldPir=(pirMove>0)?1:0;
         }
         pirMove=0;
 
         //delay(500);
         lcd->setCursor(0,0);
-        lcd->print("    Weather monitor");
-
+        lcd->print("  Weather monitor  ");
 
         lcd->setCursor(0,1);
         lcd->print(emptyStr);
@@ -664,11 +674,24 @@ int writeToThingSpeak(float temperature, float humidity, int pirMove,int distanc
     bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
     
     bool valSent = thingspeak.sendValues();
+    
     if ( valSent) {
         statusPrint("Sent to TS done");
+        wifiRetries = 0;
         return 0;
     }else {
-        statusPrint("Sent to TS Fail       ");
+        wifiRetries ++;
+        statusPrint("Sent to TS Fail (" + String(wifiRetries,DEC) + ")");
+        if ( wifiRetries > WIFIRETRY) { 
+            WiFi.off();
+            delay(1000);
+            WiFi.on();
+            
+            wifiRetries=-1;     // means rebooted
+            return -1; // come another day
+           
+        }
+            
         return 1;
     }
     lcdBacklightOff();
@@ -703,14 +726,14 @@ void updateTwitterStatus2(String tweetData){
        //statusPrint (" TW = "  + String(tw2.length(),DEC));
         delay(200);
         
-        
+        lastTwitter = millis();
         result= 0;
     }
     else{
         result= 1;
         
     }
-    
+        
     // if(!twitterClient.connected()){
     //     twitterClient.stop();
     // }
@@ -720,42 +743,5 @@ void updateTwitterStatus2(String tweetData){
        
 }
 
-void ThingSpeakTweet3(String tweetData)
-{
-    TCPClient client;
-    // Connecting and sending Tweet data to Thingspeak
-    if(client.connect("api.thingspeak.com", 80))
-    {
 
-    String tweetAPIKey = "TGOF09S158REUUZC";
-
-        
-        tweetData = "api_key=TGOF09S158REUUZC&statuses=WEGO3.5";
-                     
-
-        client.print("POST /apps/thingtweet/1/statuses/update HTTP/1.1\n");
-        client.print("Host: api.thingspeak.com\n");
-        client.print("Connection: close\n");
-        client.print("Content-Type: application/x-www-form-urlencoded\n");
-        client.print("Content-Length: ");
-        client.print(tweetData.length());
-        client.print("\n\n");
-
-        client.println(tweetData); //the ""ln" is important here.
-        client.print("\n");
-
-        // This delay is pivitol without it the TCP client will often close before the data is fully sent
-        delay(200);
-
-    }
-    else{
-        // Failed to connect to Thingspeak
-    }
-
-    if(!client.connected()){
-        client.stop();
-    }
-    client.flush();
-    client.stop();
-}
 
