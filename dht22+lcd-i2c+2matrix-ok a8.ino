@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a88"
+#define Version "0.997a89"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -357,13 +357,15 @@ void loop() {
         }
         
 // twitter if PIR changed
-        if (((pirMove>0)?1:0 !=oldPir) || ( (millis()-lastTwitter) >MINIUMTWITTERPERIOD) || ( millis()<lastTwitter) ){
-            
+        if (pirMove>0 ) {
             updateTwitterStatus2(twmsg );
-        
-            oldPir=(pirMove>0)?1:0;
+        } else {    // no move
+            if(((millis()-lastTwitter) >MINIUMTWITTERPERIOD) || ( millis()<lastTwitter)){ // or 1 hour not twittered
+                updateTwitterStatus2(twmsg );
+           
+            }
         }
-        pirMove=0;
+         pirMove=0;
 
         //delay(500);
         lcd->setCursor(0,0);
