@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a89"
+#define Version "0.997a92"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -55,6 +55,7 @@ ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 
 #define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
 #define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
+#define CHECK_PIR_SILENTCYCLE   36  // 5 * 36 = 180 = 3 min silent.
 #define LCD_BACKLIGHT_PERIOD    10  //lcd backlight last 10 sec.
 
 #define pirLEDPin D6
@@ -152,8 +153,10 @@ int f = 0;  // failed?
 unsigned long lastUp;
 unsigned long lastMove;
 unsigned long lastMoveUp;
+
 int pirMove=0;
 int oldPir=0;
+int pirAlert = CHECK_PIR_SILENTCYCLE;   // 5 pir sensor cycle no move and moved again will alert
 char loopStr[]="|\\-/!@#$%^&*";
 int loopIdx = 0;
 int dataSent=0;
@@ -427,14 +430,35 @@ void loop() {
             if (millis()-lastMove>LCD_BACKLIGHT_PERIOD*1000 || (millis()<lastMove)) {
                 digitalWrite(pirLEDPin, LOW); // turn off the light
             //    lcdBacklightOff();
+            
+            //ledStatus(D7, 1,50);
             }
+            pirAlert -=1;
+            pirAlert = (pirAlert>0)?pirAlert:0;
+
+            //lcd->setCursor(0,18);
+            //lcd->print(String(pirAlert,DEC));
+
         } else {
             digitalWrite(pirLEDPin, HIGH);   // trun on the light
             lastMove=millis();
+            
+            if (pirAlert<=0) {
+                ledStatus(D7, 5,50);
+                updateTwitterStatus2("Move sensed. " + String(pirMove, DEC) +" " +timebuf  );
+                statusPrint("Move sensed");
+            }
+            
             lcdBacklightOn();
+            //ledStatus(D7, 2,50);
+            pirAlert=CHECK_PIR_SILENTCYCLE;
             pirMove+=1;
+            //lcd->setCursor(0,18);
+            //lcd->print(String(pirAlert,DEC)+ " "+String(k,DEC));
+            //pirAlert = false;
             
         }
+        
         
     } // check PIR every 5 seconds
     
@@ -678,8 +702,10 @@ int writeToThingSpeak(float temperature, float humidity, int pirMove,int distanc
     bool valSent = thingspeak.sendValues();
     
     if ( valSent) {
+        
         statusPrint("Sent to TS done");
         wifiRetries = 0;
+        ledStatus(D7, 1,50);
         return 0;
     }else {
         wifiRetries ++;
@@ -693,7 +719,7 @@ int writeToThingSpeak(float temperature, float humidity, int pirMove,int distanc
             return -1; // come another day
            
         }
-            
+        ledStatus(D7, 3,50);    
         return 1;
     }
     lcdBacklightOff();
@@ -727,11 +753,12 @@ void updateTwitterStatus2(String tweetData){
         // This delay is pivitol without it the TCP client will often close before the data is fully sent
        //statusPrint (" TW = "  + String(tw2.length(),DEC));
         delay(200);
-        
+        ledStatus(D7, 1,50);
         lastTwitter = millis();
         result= 0;
     }
     else{
+        ledStatus(D7, 3,50);
         result= 1;
         
     }
