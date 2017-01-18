@@ -8,7 +8,7 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a92"
+#define Version "0.997a95"
 
 
 // This #include statement was automatically added by the Spark IDE.
@@ -60,6 +60,8 @@ ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 
 #define pirLEDPin D6
 #define pirPin D3
+
+#define pirEnable FALSE
 
 #define breathLED D5
 
@@ -145,6 +147,7 @@ LiquidCrystal_I2C *lcd;
 DHT dht(DHTPIN, DHTTYPE);
 
 
+
 float h;    // humidity
 float t;    // temperature
 int f = 0;  // failed?
@@ -161,6 +164,7 @@ char loopStr[]="|\\-/!@#$%^&*";
 int loopIdx = 0;
 int dataSent=0;
 char buf[65];
+bool BTReady;
 
 unsigned long lcdBacklightDelay=15;   // trun off after 15 sec.
 unsigned long lcdBacklightLastUp=millis();
@@ -285,6 +289,19 @@ void setup() {
     String twStart = "Weather Moniotr Start (" + String(Version) + ")";    
 
     updateTwitterStatus2(twStart);
+    
+    
+// 20170
+//initial BT
+    
+	Serial1.begin(115200);
+	
+
+    // if (pirEnable) {
+    //     statusPrint("P=ENABLE");
+    // } else {
+    //     statusPrint("P=DISABLE");
+    // }
 
 
 }
@@ -296,11 +313,31 @@ int bufLen=0;
 char buf2[]="                                                      ";
 char Accbuf[40];
 
-
+int x=0 ;
+char btBuf[128];
 
 void loop() {
+char myEndTXmarker = '#' ;//for example
+char readByte;
 
-        
+
+    if (Serial1.available()) {
+        do {
+            readByte = Serial1.read();
+            btBuf[x]=readByte;
+            x++;
+            ledStatus(D7, 1,2);
+            //delay(2); //slow it down a bit, allowing your next byte time to arrive
+            
+        } while ((readByte != myEndTXmarker) && (x<64)); /* && leggi < EXPECTED_BUFFER_LENGTH);*/  // if you need to prevent overflow you can add that condition
+        btBuf[x]=0;
+        x=0;
+    }
+    
+    lcd->setCursor(0,0);
+	lcd->print (btBuf);
+	delay(100);
+      
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
         lcd->init();  
@@ -422,7 +459,7 @@ void loop() {
     
     
 // Process PIR    
-    if ((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) {
+    if (((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) && pirEnable) {
         int k = digitalRead(pirPin);
         lastMoveUp = millis();
      
@@ -443,9 +480,9 @@ void loop() {
             digitalWrite(pirLEDPin, HIGH);   // trun on the light
             lastMove=millis();
             
-            if (pirAlert<=0) {
+            if (pirAlert<=0 && pirEnable) {
                 ledStatus(D7, 5,50);
-                updateTwitterStatus2("Move sensed. " + String(pirMove, DEC) +" " +timebuf  );
+                updateTwitterStatus2("" + String(pirMove, DEC) +" " +timebuf  );
                 statusPrint("Move sensed");
             }
             
@@ -462,8 +499,8 @@ void loop() {
         
     } // check PIR every 5 seconds
     
-    
-    lcdBacklightOff();
+//2017 temperatory    
+//    lcdBacklightOff();
 
 }
 
@@ -694,6 +731,8 @@ void statusPrint(String statusStr) {
 
 int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
     lcdBacklightOn();
+    return 0;
+    
     statusPrint ("send to TS......");
     bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
     bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
@@ -730,7 +769,8 @@ int writeToThingSpeak(float temperature, float humidity, int pirMove,int distanc
 void updateTwitterStatus2(String tweetData){
     int result;
     //return 0;
-    
+    //   return
+ 
     TCPClient twitterClient;
     //tweetData="api_key=TGOF09S158REUUZC&status=" + tweetData;
     //String tw2 = "api_key=TGOF09S158REUUZC&status=WeGoII1";
@@ -771,6 +811,5 @@ void updateTwitterStatus2(String tweetData){
     
        
 }
-
 
 
