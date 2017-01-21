@@ -1,5 +1,9 @@
+//// This #include statement was automatically added by the Particle IDE.
+#include "blynk/blynk.h"
+
+
 // This #include statement was automatically added by the Particle IDE.
-#include "thingspeak/thingspeak.h"
+//#include "thingspeak/thingspeak.h"
 
 // This #include statement was automatically added by the Spark IDE.
 //#include "XivelyDatastream.h"
@@ -8,14 +12,14 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.997a95"
+#define Version "0.999a97a01"
 
 
-// This #include statement was automatically added by the Spark IDE.
+// This #include statement was automatically 1added by the Spark IDE.
 #include "SparkTime/SparkTime.h"
 
 // This #include statement was automatically added by the Spark IDE.
-#include "pulse.h"
+//#include "pulse.h"
 
 // // This #include statement was automatically added by the Spark IDE.
 //#include <stdint.h>
@@ -26,36 +30,37 @@
 #include "ledcontrol.h"
 
 
-
 int led=7;
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 
+// Byklin Auth key
+char auth[] ="5b752cbeca284df19a1c0d8deb1f1b88";
 
 // Twitter API Key
-#define TOKEN "2927024191-XLHyWduCLFMP0ouEvhxzBfZ86ATqSFBK9Rm3cDK"
+//#define TOKEN "2927024191-XLHyWduCLFMP0ouEvhxzBfZ86ATqSFBK9Rm3cDK"
 // Twitter Proxy
-#define LIB_DOMAIN "arduino-tweet.appspot.com"
+//#define LIB_DOMAIN "arduino-tweet.appspot.com"
 
 // ThinkSpeak parts.
-byte TSserver[]  = { 184, 106, 153, 149 }; // ThingSpeak IP Address: 184.106.153.149
-#define THINKSPEAKTOKEN "OS7CAQM44RGB0AI2"
+//byte TSserver[]  = { 184, 106, 153, 149 }; // ThingSpeak IP Address: 184.106.153.149
+//#define THINKSPEAKTOKEN "OS7CAQM44RGB0AI2"
 
 //cnwang.bot
 // #define THINKSPEAKTWITTERTOKEN "TGOF09S158REUUZC"
 //cnwang406
-#define THINKSPEAKTWITTERTOKEN "LCQ2C784KIUGR5QG"
-#define THINKSPEAKSERVER "api.thingspeak.com"
-TCPClient TSclient;
+//#define THINKSPEAKTWITTERTOKEN "LCQ2C784KIUGR5QG"
+//#define THINKSPEAKSERVER "api.thingspeak.com"
+//TCPClient TSclient;
 //TCPServer server = TCPServer(8081);
-ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
+//ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 
 
 #define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
-#define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
-#define CHECK_PIR_SILENTCYCLE   36  // 5 * 36 = 180 = 3 min silent.
+//#define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
+//#define CHECK_PIR_SILENTCYCLE   36  // 5 * 36 = 180 = 3 min silent.
 #define LCD_BACKLIGHT_PERIOD    10  //lcd backlight last 10 sec.
 
 #define pirLEDPin D6
@@ -69,15 +74,15 @@ ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 int wifiRetries = 0;
 
 // SRF-05
-const int numOfReadings = 3;                   // number of readings to take/ items in the array
-int readings[numOfReadings];                    // stores the distance readings in an array
-int arrayIndex = 0;                             // arrayIndex of the current item in the array
-int total = 0;                                  // stores the cumlative total
-int averageDistance = 0;                        // stores the average value
-unsigned long pulseTime = 0;                    // stores the pulse in Micro Seconds
-unsigned long distance = 0;                     // variable for storing the distance (cm)
-#define SRFThreshold 38
-#define SRFMAX  50
+// const int numOfReadings = 3;                   // number of readings to take/ items in the array
+// int readings[numOfReadings];                    // stores the distance readings in an array
+// int arrayIndex = 0;                             // arrayIndex of the current item in the array
+// int total = 0;                                  // stores the cumlative total
+// int averageDistance = 0;                        // stores the average value
+// unsigned long pulseTime = 0;                    // stores the pulse in Micro Seconds
+// unsigned long distance = 0;                     // variable for storing the distance (cm)
+// #define SRFThreshold 38
+// #define SRFMAX  50
 
 
 // setup pins/values for LED
@@ -104,22 +109,22 @@ int ledIntensity = 15;
 // }
 
 
-TCPServer server = TCPServer(8081);
+// TCPServer server = TCPServer(8081);
 
 //--------------------------------------
 //TCPClient client;
 
 
 //-----------
-void sendToThingSpeakWithLed(int led, float temperature, float humidity, int pirMove,int distance){
-    //int r = sendToXively(temperature, humidity, pirMove,distance);
-    int r = writeToThingSpeak(temperature, humidity, pirMove, distance);
-    if (r==0){
-        ledStatus(led, 1, 100);    
-    } else {
-        ledStatus (led, 2,1000);
-    }
-}
+// void sendToThingSpeakWithLed(int led, float temperature, float humidity, int pirMove,int distance){
+//     //int r = sendToXively(temperature, humidity, pirMove,distance);
+//     int r = writeToThingSpeak(temperature, humidity, pirMove, distance);
+//     if (r==0){
+//         ledStatus(led, 1, 100);    
+//     } else {
+//         ledStatus (led, 2,1000);
+//     }
+// }
 
 
 
@@ -152,14 +157,19 @@ float h;    // humidity
 float t;    // temperature
 int f = 0;  // failed?
 
+float oh;   // outdoor humidity
+float ot;   // outdoor temperature
+float obatm; // bmp's outdoor atmosphere
+float obt;  // bmp's temperature
+float obalt;
 
 unsigned long lastUp;
 unsigned long lastMove;
 unsigned long lastMoveUp;
 
-int pirMove=0;
-int oldPir=0;
-int pirAlert = CHECK_PIR_SILENTCYCLE;   // 5 pir sensor cycle no move and moved again will alert
+// int pirMove=0;
+// int oldPir=0;
+// int pirAlert = CHECK_PIR_SILENTCYCLE;   // 5 pir sensor cycle no move and moved again will alert
 char loopStr[]="|\\-/!@#$%^&*";
 int loopIdx = 0;
 int dataSent=0;
@@ -177,7 +187,8 @@ unsigned long currentTime;
 unsigned long lastTime = 0UL;
 String timeStr;
 String newTimeStr;
-String emptyStr;
+String emptyStr = "                   ";
+
 #define ONE_DAY_MILLIS (8 * 60 * 60 * 1000)
 unsigned long lastSync = millis();
 char timebuf[60];
@@ -185,9 +196,25 @@ char timebuf[60];
 #define MINIUMTWITTERPERIOD ( 60 *60 * 1000)         // twitter at least 1 hour a time
 unsigned long lastTwitter = millis();
 
+
+//BLYNK 
+WidgetTerminal terminal(V18);
+#define BLYNK_roomTemp  V1
+#define BLYNK_roomHumidity V2
+#define BLYNK_outdoorTemp V3
+#define BLYNK_outdoorHumidity V6
+#define BLYNK_IMHERE V10
+#define BLYNK_cloud V11
+#define BLYNK_terminal V18
+#define BLYNK_ATM V8
+#define BLYNK_BMPTEMP V7
+#define BLYNK_ALT V5
+#define BLYNK_requestTime V9
+
+
+
 void setup() {
   
-    
   
     lcd = new LiquidCrystal_I2C(0x27, 20,4);
   
@@ -206,11 +233,11 @@ void setup() {
     }
   
     // PIR
-    pinMode(pirPin, INPUT);
-    pinMode(pirLEDPin, OUTPUT);
-    digitalWrite(pirLEDPin, HIGH);
-    delay(500);
-    digitalWrite(pirLEDPin, LOW);
+    // pinMode(pirPin, INPUT);
+    // pinMode(pirLEDPin, OUTPUT);
+    // // digitalWrite(pirLEDPin, HIGH);
+    // delay(500);
+    // digitalWrite(pirLEDPin, LOW);
     
     for (int i=0; i<strlen(buf); i++) {
         buf[i] = ' ';
@@ -227,8 +254,9 @@ void setup() {
          
    
     scrollMessage("Weather Monitor. by cnwang ");
-
-
+    // byklin initialize
+    Blynk.begin(auth);
+    
     delay(3000);
     lcd->clear();
     lcd->setCursor(0,0);
@@ -259,6 +287,14 @@ void setup() {
     lastSync = millis();
     
     TimeString();
+    terminal.println(timebuf);
+    terminal.println("Weather Monitor Start");
+    terminal.print("Ver ");
+    terminal.println(Version);
+    terminal.println("----------------------");
+    terminal.flush();
+
+
     lcd->setCursor(0,3);
     lcd->print(timebuf);
 
@@ -276,27 +312,26 @@ void setup() {
     
     
 //Set thingspeak    
-     thingspeak.setConnectionTimeout(1500);
+//     thingspeak.setConnectionTimeout(1500);
      
 //writeToThingSpeak(50.5,50.5,3,0);
      
     
-    emptyStr="";
-    for (int i=0;i<19;i++){
-        emptyStr +=" ";
-    }
-    statusPrint("TWITTER......");
-    String twStart = "Weather Moniotr Start (" + String(Version) + ")";    
+    // statusPrint("TWITTER......");
+    // String twStart = "Weather Moniotr Start (" + String(Version) + ")";    
 
-    updateTwitterStatus2(twStart);
+//    updateTwitterStatus2(twStart);
+    
+    
+    
     
     
 // 20170
 //initial BT
     
 	Serial1.begin(115200);
-	
-
+	Serial1.flush();
+    
     // if (pirEnable) {
     //     statusPrint("P=ENABLE");
     // } else {
@@ -316,27 +351,66 @@ char Accbuf[40];
 int x=0 ;
 char btBuf[128];
 
+
+unsigned long btTimer=millis();
+
 void loop() {
-char myEndTXmarker = '#' ;//for example
-char readByte;
-
-
-    if (Serial1.available()) {
-        do {
+    //char myEndTXmarker = '#' ;//for example
+    char readByte;
+ 
+    Blynk.run();
+    if ((millis()-btTimer>60*1000L) || (millis()<btTimer)){
+    
+        btTimer=millis();  //every 60 seconds
+        if (Serial1.available()) {
+            //BT:[
+            //   16.7 83.1 17.1 1033.8 0055.0]#
+            //  123456789012345678901234567890 
+            
+            
             readByte = Serial1.read();
-            btBuf[x]=readByte;
-            x++;
-            ledStatus(D7, 1,2);
+            if (readByte == '#') {
+                float tempot = Serial1.parseFloat();
+                tempot = (int(tempot*10) % 1000)/10;
+                float tempoh = Serial1.parseFloat();
+                float tempobatm=Serial1.parseFloat();
+                float tempobt = Serial1.parseFloat();
+                float tempobalt=Serial1.parseFloat();
+                Serial1.flush();    
+                if ((tempobatm > 900) && (tempobatm< 1300)) {    // valid value
+                    ot = tempot;
+                    oh = tempoh;
+                    obt = tempobt;
+                    obatm = tempobatm;
+                    obalt = tempobalt;
+                    terminal.println("BT= [" + String(tempot)+ "/"+ String(tempoh)+ "/"+String(tempobatm)+"]");
+                    
+                } else {
+                
+                    terminal.println("Invalid BT. [" + String(tempot)+ "/"+ String(tempoh)+ "/"+String(tempobatm)+"]");
+                    
+                }
+                terminal.flush();
+                //readByte = Serial1.read();
+                //btBuf[x]=readByte;
+                //x++;
+                ledStatus(D7, 1,2);
+            }
             //delay(2); //slow it down a bit, allowing your next byte time to arrive
             
-        } while ((readByte != myEndTXmarker) && (x<64)); /* && leggi < EXPECTED_BUFFER_LENGTH);*/  // if you need to prevent overflow you can add that condition
-        btBuf[x]=0;
-        x=0;
+            //} while ((readByte != myEndTXmarker) && (x<35)); /* && leggi < EXPECTED_BUFFER_LENGTH);*/  // if you need to prevent overflow you can add that condition
+            //btBuf[x-1]=0;
+            //x=0;
+            
+        }
+        terminal.println("BT:[ot="+String(ot)+" oh="+String(oh)+ " obt="+String(obt)+" obatm="+String(obatm)+" obalt="+String(obalt)+"]");
+        terminal.flush();
+        myTimerEvent();
     }
-    
-    lcd->setCursor(0,0);
-	lcd->print (btBuf);
-	delay(100);
+   
+//    lcd->setCursor(0,0);
+//	lcd->print (btBuf);
+//	delay(100);
       
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
@@ -359,26 +433,27 @@ char readByte;
         ledStatus(led, 1,300);
         //updateTwitterStatus2("lalala");
 
-        switch (WiFi.RSSI()){
-        case 1:
-            statusPrint("WIFI chip fail");
-            break;
-        case 2:
-            statusPrint("WIFI timeout");
-            break;
-        default:
-            String wifiStr = String(WiFi.SSID()) + "/" + String(WiFi.RSSI()) + " dB";
-            statusPrint(wifiStr);
-        }
+        // switch (WiFi.RSSI()){
+        // case 1:
+        //     statusPrint("WIFI chip fail");
+        //     break;
+        // case 2:
+        //     statusPrint("WIFI timeout");
+        //     break;
+        // default:
+        //     String wifiStr = String(WiFi.SSID()) + "/" + String(WiFi.RSSI()) + " dB";
+        //     statusPrint(wifiStr);
+        // }
 
         if (wifiRetries == -1) {
             if (WiFi.ready()) {
-                updateTwitterStatus2("wifi module reboot ok");
+                //updateTwitterStatus2("wifi module reboot ok");
                 statusPrint("wifi Rebooted ok");
                 wifiRetries=0;
             } else {
                 // wifi reboot, but has not readied yet
                 statusPrint("Wifi not ready");
+                WiFi.connect();
             }
         }
 
@@ -389,48 +464,47 @@ char readByte;
         h = dht.readHumidity();
         
         statusPrint ("Read OK");
-        String twmsg = "WM T="+ String(t).substring(0,4)+ " RH="+String(h).substring(0,4)+" P="+String(pirMove,DEC) + " " + timebuf;
+        //String twmsg = "WM T="+ String(t).substring(0,4)+ " RH="+String(h).substring(0,4) + " " + timebuf;
 
-        if (h<100) {    // only send valid data
-            sendToThingSpeakWithLed(led, t,h,pirMove,0);
-            //updateTwitterStatus2(twmsg);
-        }
+        // if (h<100) {    // only send valid data
+        //     sendToThingSpeakWithLed(led, t,h,pirMove,0);
+        //     //updateTwitterStatus2(twmsg);
+        // }
         
 // twitter if PIR changed
-        if (pirMove>0 ) {
-            updateTwitterStatus2(twmsg );
-        } else {    // no move
-            if(((millis()-lastTwitter) >MINIUMTWITTERPERIOD) || ( millis()<lastTwitter)){ // or 1 hour not twittered
-                updateTwitterStatus2(twmsg );
+        // if (pirMove>0 ) {
+        //     updateTwitterStatus2(twmsg );
+        // } else {    // no move
+        //     if(((millis()-lastTwitter) >MINIUMTWITTERPERIOD) || ( millis()<lastTwitter)){ // or 1 hour not twittered
+        //         updateTwitterStatus2(twmsg );
            
-            }
-        }
-         pirMove=0;
+        //     }
+        // }
+        //  pirMove=0;
 
         //delay(500);
+        lcd->clear();
         lcd->setCursor(0,0);
         lcd->print("  Weather monitor  ");
 
-        lcd->setCursor(0,1);
-        lcd->print(emptyStr);
+        //lcd->setCursor(0,1);
+        //lcd->print(emptyStr);
         lcd->setCursor(0,1);
         lcd->print("T  = ");
         //lcd->setCursor(5,1);
         lcd->print(t,2);
         lcd->print(" C");
         
-        lcd->setCursor(0,2);
-        lcd->print(emptyStr);
+        // lcd->setCursor(0,2);
+        // lcd->print(emptyStr);
         lcd->setCursor(0,2);
         lcd->print("RH%= ");
         //lcd->setCursor(5,2);
         lcd->print(h,2);
         lcd->print(" %");
-        lcd->setCursor(15,2);
-        //lcd->print( " ");
-        lcd->print(++dataSent);
-        
-
+        // lcd->setCursor(15,2);
+        // //lcd->print( " ");
+        // lcd->print(++dataSent);
         
     }
     
@@ -442,9 +516,17 @@ char readByte;
     if (loopIdx>13) loopIdx=0;
    
     TimeString();
-    sprintf(buf, "%hi.%01hi%cC  %i.%01i%%  %s  ", int(t), abs(int(int(t*10)%10)), 0x7f, int(h), int(int(h*10)%10),timebuf);
+    sprintf(buf, "  %hi.%01hi%cC / %hi.%01hi%cC  %i.%01i%% / %i.%01i%%  %i.%01i mb %s  ", 
+    int(t), abs(int(int(t*10)%10)), 0x7f, 
+    int(ot), abs(int(int(ot*10)%10)), 0x7f, 
+    int(h), int(int(h*10)%10),
+    int(oh), int(int(oh*10)%10),
+    int(obatm), int(int(obatm*10)%10),
+    timebuf);
     bufLen = strlen(buf);
-    
+    sprintf(buf2,"");
+
+ 
     for (int i=0; i<10; i++) {
         *(buf2+i)=0;
     }
@@ -459,48 +541,48 @@ char readByte;
     
     
 // Process PIR    
-    if (((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) && pirEnable) {
-        int k = digitalRead(pirPin);
-        lastMoveUp = millis();
+    // if (((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) && pirEnable) {
+    //     int k = digitalRead(pirPin);
+    //     lastMoveUp = millis();
      
-        if (k==0 ) { // no move
-            if (millis()-lastMove>LCD_BACKLIGHT_PERIOD*1000 || (millis()<lastMove)) {
-                digitalWrite(pirLEDPin, LOW); // turn off the light
-            //    lcdBacklightOff();
+    //     if (k==0 ) { // no move
+    //         if (millis()-lastMove>LCD_BACKLIGHT_PERIOD*1000 || (millis()<lastMove)) {
+    //             digitalWrite(pirLEDPin, LOW); // turn off the light
+    //         //    lcdBacklightOff();
             
-            //ledStatus(D7, 1,50);
-            }
-            pirAlert -=1;
-            pirAlert = (pirAlert>0)?pirAlert:0;
+    //         //ledStatus(D7, 1,50);
+    //         }
+    //         pirAlert -=1;
+    //         pirAlert = (pirAlert>0)?pirAlert:0;
 
-            //lcd->setCursor(0,18);
-            //lcd->print(String(pirAlert,DEC));
+    //         //lcd->setCursor(0,18);
+    //         //lcd->print(String(pirAlert,DEC));
 
-        } else {
-            digitalWrite(pirLEDPin, HIGH);   // trun on the light
-            lastMove=millis();
+    //     } else {
+    //         digitalWrite(pirLEDPin, HIGH);   // trun on the light
+    //         lastMove=millis();
             
-            if (pirAlert<=0 && pirEnable) {
-                ledStatus(D7, 5,50);
-                updateTwitterStatus2("" + String(pirMove, DEC) +" " +timebuf  );
-                statusPrint("Move sensed");
-            }
+    //         if (pirAlert<=0 && pirEnable) {
+    //             ledStatus(D7, 5,50);
+    //             updateTwitterStatus2("" + String(pirMove, DEC) +" " +timebuf  );
+    //             statusPrint("Move sensed");
+    //         }
             
-            lcdBacklightOn();
-            //ledStatus(D7, 2,50);
-            pirAlert=CHECK_PIR_SILENTCYCLE;
-            pirMove+=1;
-            //lcd->setCursor(0,18);
-            //lcd->print(String(pirAlert,DEC)+ " "+String(k,DEC));
-            //pirAlert = false;
+    //         lcdBacklightOn();
+    //         //ledStatus(D7, 2,50);
+    //         pirAlert=CHECK_PIR_SILENTCYCLE;
+    //         pirMove+=1;
+    //         //lcd->setCursor(0,18);
+    //         //lcd->print(String(pirAlert,DEC)+ " "+String(k,DEC));
+    //         //pirAlert = false;
             
-        }
+    //     }
         
         
-    } // check PIR every 5 seconds
+    // } // check PIR every 5 seconds
     
 //2017 temperatory    
-//    lcdBacklightOff();
+    lcdBacklightOff();
 
 }
 
@@ -594,18 +676,6 @@ void rotateBufferLong(){
   }
 } 
 
-void rotateBufferLongOld(){
-  for (int a=0;a<7;a++){                      // Loop 7 times for a 5x7 font
-    unsigned long x = bufferLong [a*2];     // Get low buffer entry
-    byte b = bitRead(x,31);                 // Copy high order bit that gets lost in rotation
-    x = x<<1;                               // Rotate left one bit
-    bufferLong [a*2] = x;                   // Store new low buffer
-    x = bufferLong [a*2+1];                 // Get high buffer entry
-    x = x<<1;                               // Rotate left one bit
-    bitWrite(x,0,b);                        // Store saved bit
-    bufferLong [a*2+1] = x;                 // Store new high buffer
-  }
-} 
 void printBufferLong(){
   for (int a=0;a<7;a++){                    // Loop 7 times for a 5x7 font
     unsigned long x = bufferLong [a*2+1];   // Get high buffer entry
@@ -632,50 +702,6 @@ void printBufferLong(){
   }
   
 }
-// Display Buffer on LED matrix
-void printBufferLongBackup(){
-  for (int a=0;a<7;a++){                    // Loop 7 times for a 5x7 font
-    unsigned long x = bufferLong [a*2+1];   // Get high buffer entry
-    
-    unsigned long x2 = bufferLong2[a*2];
-    byte y2 = (x2 >>16);
-    
-    lc ->setRow(5,a,y2);
-    
-    x2 = bufferLong2[a*2];
-    //y2 = (x2 >> 16);
-    y2 = byte(x2>>8);
-    lc ->setRow(4,a,y2);
-    
-    
-    byte y = x;                             // Mask off first character
-    //lc2.setRow(3,a,y);                       // Send row to relevent MAX7219 chip
-    lc->setRow(3,a,y);                       // Send row to relevent MAX7219 chip
-    x = bufferLong [a*2];                   // Get low buffer entry
-    y = (x>>24);                            // Mask off second character
-    lc->setRow(2,a,y);                       // Send row to relevent MAX7219 chip
-    y = (x>>16);                            // Mask off third character
-    lc->setRow(1,a,y);                       // Send row to relevent MAX7219 chip
-    y = (x>>8);                             // Mask off forth character
-    lc->setRow(0,a,y);                       // Send row to relevent MAX7219 chip
-  }
-  
-}
-void printBufferLongOld(){
-  for (int a=0;a<7;a++){                    // Loop 7 times for a 5x7 font
-    unsigned long x = bufferLong [a*2+1];   // Get high buffer entry
-    byte y = x;                             // Mask off first character
-    //lc2.setRow(3,a,y);                       // Send row to relevent MAX7219 chip
-    lc->setRow(3,a,y);                       // Send row to relevent MAX7219 chip
-    x = bufferLong [a*2];                   // Get low buffer entry
-    y = (x>>24);                            // Mask off second character
-    lc->setRow(2,a,y);                       // Send row to relevent MAX7219 chip
-    y = (x>>16);                            // Mask off third character
-    lc->setRow(1,a,y);                       // Send row to relevent MAX7219 chip
-    y = (x>>8);                             // Mask off forth character
-    lc->setRow(0,a,y);                       // Send row to relevent MAX7219 chip
-  }
-}
 
 String left(int sss, int leng) {
     String temp = String("0000") + String(sss);
@@ -687,10 +713,6 @@ String left(int sss, int leng) {
 
 void TimeString(){
     timeStr =" ";
-     //Serial.print(str);
-     //Serial.print(Time.timeStr());
-    //String newTimeStr = String(Time.timeStr());
-    //String newTimeStr = String(Time.month()) + "/" + String(Time.day()) + " " + String(Time.hour())+ ":"+String(Time.minute());
     String newTimeStr = left(Time.month(),2) + "/" + left(Time.day(),2) + " " + left(Time.hour(),2)+ ":"+ left(Time.minute(),2)+" ";
     
     timeStr = newTimeStr;
@@ -706,6 +728,7 @@ void TimeString(){
         ledIntensity = 1;
     } else {
         ledIntensity = 0;
+        lcdBacklightOff();
     }
   
     for (int a=0; a<6; a++) {
@@ -713,9 +736,6 @@ void TimeString(){
         lc->setIntensity(a, ledIntensity);
     }
     
-    if (ledIntensity == 0) {
-        lcdBacklightOff();
-    }
 }
 
 
@@ -729,87 +749,146 @@ void statusPrint(String statusStr) {
 
 
 
-int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
-    lcdBacklightOn();
-    return 0;
+// int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
+//     lcdBacklightOn();
+//     return 0;
     
-    statusPrint ("send to TS......");
-    bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
-    bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
-    bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
+//     statusPrint ("send to TS......");
+//     bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
+//     bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
+//     bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
     
-    bool valSent = thingspeak.sendValues();
+//     bool valSent = thingspeak.sendValues();
     
-    if ( valSent) {
+//     if ( valSent) {
         
-        statusPrint("Sent to TS done");
-        wifiRetries = 0;
-        ledStatus(D7, 1,50);
-        return 0;
-    }else {
-        wifiRetries ++;
-        statusPrint("Sent to TS Fail (" + String(wifiRetries,DEC) + ")");
-        if ( wifiRetries > WIFIRETRY) { 
-            WiFi.off();
-            delay(1000);
-            WiFi.on();
+//         statusPrint("Sent to TS done");
+//         wifiRetries = 0;
+//         ledStatus(D7, 1,50);
+//         return 0;
+//     }else {
+//         wifiRetries ++;
+//         statusPrint("Sent to TS Fail (" + String(wifiRetries,DEC) + ")");
+//         if ( wifiRetries > WIFIRETRY) { 
+//             WiFi.off();
+//             delay(1000);
+//             WiFi.on();
             
-            wifiRetries=-1;     // means rebooted
-            return -1; // come another day
+//             wifiRetries=-1;     // means rebooted
+//             return -1; // come another day
            
-        }
-        ledStatus(D7, 3,50);    
-        return 1;
-    }
-    lcdBacklightOff();
+//         }
+//         ledStatus(D7, 3,50);    
+//         return 1;
+//     }
+//     lcdBacklightOff();
 
-}
+// }
 
 
-void updateTwitterStatus2(String tweetData){
-    int result;
-    //return 0;
-    //   return
+// void updateTwitterStatus2(String tweetData){
+//     int result;
+//       return;
  
-    TCPClient twitterClient;
-    //tweetData="api_key=TGOF09S158REUUZC&status=" + tweetData;
-    //String tw2 = "api_key=TGOF09S158REUUZC&status=WeGoII1";
-    String tw2 = "api_key=TGOF09S158REUUZC&status=" + tweetData;
+//     TCPClient twitterClient;
+//     //tweetData="api_key=TGOF09S158REUUZC&status=" + tweetData;
+//     //String tw2 = "api_key=TGOF09S158REUUZC&status=WeGoII1";
+//     String tw2 = "api_key=TGOF09S158REUUZC&status=" + tweetData;
     
-    // Connecting and sending Tweet data to Thingspeak
-    if(twitterClient.connect("api.thingspeak.com", 80))
-    {
-        twitterClient.print("POST /apps/thingtweet/1/statuses/update HTTP/1.1\n");
-        twitterClient.print("Host: api.thingspeak.com\n");
-        twitterClient.print("Connection: close\n");
-        twitterClient.print("Content-Type: application/x-www-form-urlencoded\n");
-        //twitterClient.print("Content-Length: " + String(tweetData.length(),DEC) + "\n\n");
-        //twitterClient.println(tweetData); //the ""ln" is important here.
+//     // Connecting and sending Tweet data to Thingspeak
+//     if(twitterClient.connect("api.thingspeak.com", 80))
+//     {
+//         twitterClient.print("POST /apps/thingtweet/1/statuses/update HTTP/1.1\n");
+//         twitterClient.print("Host: api.thingspeak.com\n");
+//         twitterClient.print("Connection: close\n");
+//         twitterClient.print("Content-Type: application/x-www-form-urlencoded\n");
+//         //twitterClient.print("Content-Length: " + String(tweetData.length(),DEC) + "\n\n");
+//         //twitterClient.println(tweetData); //the ""ln" is important here.
         
-        twitterClient.print("Content-Length: "+ String(tw2.length(),DEC) + "\n\n");
+//         twitterClient.print("Content-Length: "+ String(tw2.length(),DEC) + "\n\n");
         
-        twitterClient.println(tw2);
-        twitterClient.print("\n");
-        // This delay is pivitol without it the TCP client will often close before the data is fully sent
-       //statusPrint (" TW = "  + String(tw2.length(),DEC));
-        delay(200);
-        ledStatus(D7, 1,50);
-        lastTwitter = millis();
-        result= 0;
-    }
-    else{
-        ledStatus(D7, 3,50);
-        result= 1;
+//         twitterClient.println(tw2);
+//         twitterClient.print("\n");
+//         // This delay is pivitol without it the TCP client will often close before the data is fully sent
+//       //statusPrint (" TW = "  + String(tw2.length(),DEC));
+//         delay(200);
+//         ledStatus(D7, 1,50);
+//         lastTwitter = millis();
+//         result= 0;
+//     }
+//     else{
+//         ledStatus(D7, 3,50);
+//         result= 1;
         
-    }
+//     }
         
-    // if(!twitterClient.connected()){
-    //     twitterClient.stop();
-    // }
-    twitterClient.flush();
-    twitterClient.stop();
+//     // if(!twitterClient.connected()){
+//     //     twitterClient.stop();
+//     // }
+//     twitterClient.flush();
+//     twitterClient.stop();
     
        
+// }
+
+BLYNK_READ(BLYNK_roomTemp) {
+  Blynk.virtualWrite(BLYNK_roomTemp, t);
+  }
+BLYNK_READ(BLYNK_outdoorTemp) {
+  Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
+  }
+
+
+BLYNK_READ(BLYNK_roomHumidity) {
+  Blynk.virtualWrite(BLYNK_roomHumidity, h);
+  }
+BLYNK_READ(BLYNK_outdoorHumidity) {
+  Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
+  }
+BLYNK_READ(BLYNK_ATM) {
+
+  Blynk.virtualWrite(BLYNK_ATM, obatm);
+
+  }
+BLYNK_READ(BLYNK_ALT) {
+
+  Blynk.virtualWrite(BLYNK_ALT, obalt);
+
+  }
+BLYNK_READ(BLYNK_BMPTEMP) {
+
+  Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
+  }
+  
+BLYNK_WRITE(BLYNK_IMHERE ) {
+
+    ledStatus(D7,3,10);
+    terminal.println("it should blink 3 times");
+    terminal.flush();
+    Blynk.virtualWrite(BLYNK_roomTemp, t);
+}
+BLYNK_WRITE(BLYNK_cloud) {
+    //Blykn.virtualRead(V2,)
+    if (param.asInt() ==1) { // connect 
+        Particle.connect();
+        terminal.println("Particle Cloud connected");
+        ledStatus(D7,1,1000);
+    } else {
+        Particle.disconnect();
+        terminal.println("Particle Cloud disconnected");
+        ledStatus(D7,2,500);;
+    }
+    
+    terminal.flush();
 }
 
-
+void myTimerEvent()
+{
+  // You can send any value at any time.
+  // Please don't send more that 10 values per second.
+    Blynk.virtualWrite(BLYNK_roomTemp, t);
+    Blynk.virtualWrite(BLYNK_roomHumidity, h); 
+    Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
+    Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
+    Blynk.virtualWrite(BLYNK_ATM, obatm);
+}
