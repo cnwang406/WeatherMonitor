@@ -12,11 +12,13 @@
 //#include "XivelyClient.h"
 
 
-#define Version "0.999a97a01"
+
+
+#define Version "0.999a97a24"
 
 
 // This #include statement was automatically 1added by the Spark IDE.
-#include "SparkTime/SparkTime.h"
+//#include "SparkTime/SparkTime.h"
 
 // This #include statement was automatically added by the Spark IDE.
 //#include "pulse.h"
@@ -164,8 +166,8 @@ float obt;  // bmp's temperature
 float obalt;
 
 unsigned long lastUp;
-unsigned long lastMove;
-unsigned long lastMoveUp;
+//unsigned long lastMove;
+//unsigned long lastMoveUp;
 
 // int pirMove=0;
 // int oldPir=0;
@@ -181,9 +183,11 @@ unsigned long lcdBacklightLastUp=millis();
 
 //sparkTime rtc;
 UDP UDPClient;
-SparkTime rtc;
+//SparkTime rtc;
 
 unsigned long currentTime;
+unsigned long startTime=millis()/1000;
+unsigned long upTime=0L;;
 unsigned long lastTime = 0UL;
 String timeStr;
 String newTimeStr;
@@ -219,8 +223,8 @@ void setup() {
     lcd = new LiquidCrystal_I2C(0x27, 20,4);
   
     lcd->init();                      // initialize the lcd
-    lcd->backlight();
     lcd->clear();
+    lcd->backlight();
     
     
   
@@ -304,7 +308,7 @@ void setup() {
     ledStatus(D7, 3,1000);
     ledStatus(D7, 2,100);
     lastUp=millis()-3*1000*60;
-    lastMoveUp = millis();
+    // lastMoveUp = millis();
     lcdBacklightLastUp=millis();
     loopIdx=0;
     
@@ -331,6 +335,7 @@ void setup() {
     
 	Serial1.begin(115200);
 	Serial1.flush();
+	Serial1.flush();
     
     // if (pirEnable) {
     //     statusPrint("P=ENABLE");
@@ -353,65 +358,77 @@ char btBuf[128];
 
 
 unsigned long btTimer=millis();
-
+int displayTemp = 0;
+int lastDisplayTemp=0;
 void loop() {
     //char myEndTXmarker = '#' ;//for example
     char readByte;
  
     Blynk.run();
+       TimeString();
     if ((millis()-btTimer>60*1000L) || (millis()<btTimer)){
-    
+        ledStatus(D7, 3,50);
         btTimer=millis();  //every 60 seconds
         if (Serial1.available()) {
             //BT:[
             //   16.7 83.1 17.1 1033.8 0055.0]#
             //  123456789012345678901234567890 
-            
-            
+
             readByte = Serial1.read();
             if (readByte == '#') {
                 float tempot = Serial1.parseFloat();
-                tempot = (int(tempot*10) % 1000)/10;
+                //tempot = (int(tempot*10) % 1000)/10;
+                while (tempot>100) {
+                    tempot-=100;
+                }
+                delay(20);
                 float tempoh = Serial1.parseFloat();
+                delay(20);
                 float tempobatm=Serial1.parseFloat();
+                delay(20);
                 float tempobt = Serial1.parseFloat();
+                delay(20);
                 float tempobalt=Serial1.parseFloat();
+                delay(20);
+                int checkSum = Serial1.parseInt();
+                delay(20);
                 Serial1.flush();    
-                if ((tempobatm > 900) && (tempobatm< 1300)) {    // valid value
+                int checkSum2 = int(tempoh)+int(tempobatm)+int(tempobt)+int(tempobalt)+int(tempot); 
+                terminal.print (timebuf);
+                terminal.print (" ");
+                terminal.print("checksum= " + String(tempot)+ "+"+ String(tempoh)+ "+"+String(tempobatm)+"+"+
+                    String(tempobalt)+"+"+String(tempobt)+"="+String(checkSum) );
+                    
+                if (checkSum2== checkSum){
+                
+                //if ((tempobatm > 900) && (tempobatm< 1300) && (tempoh>30) ) {    // valid value
                     ot = tempot;
                     oh = tempoh;
                     obt = tempobt;
                     obatm = tempobatm;
                     obalt = tempobalt;
-                    terminal.println("BT= [" + String(tempot)+ "/"+ String(tempoh)+ "/"+String(tempobatm)+"]");
-                    
-                } else {
-                
-                    terminal.println("Invalid BT. [" + String(tempot)+ "/"+ String(tempoh)+ "/"+String(tempobatm)+"]");
+                    terminal.print(" == ");
+                } else { // do something ....
+                    delay(1000);    // delay 1 second
+                    Serial1.flush();    // just remove all
+                    terminal.print (" != ");
                     
                 }
+                terminal.println(checkSum2);
                 terminal.flush();
-                //readByte = Serial1.read();
-                //btBuf[x]=readByte;
-                //x++;
-                ledStatus(D7, 1,2);
+                ledStatus(D7, 1,20);
             }
-            //delay(2); //slow it down a bit, allowing your next byte time to arrive
-            
-            //} while ((readByte != myEndTXmarker) && (x<35)); /* && leggi < EXPECTED_BUFFER_LENGTH);*/  // if you need to prevent overflow you can add that condition
-            //btBuf[x-1]=0;
-            //x=0;
-            
+
+        }else {
+            ledStatus(D7, 2,100);
         }
-        terminal.println("BT:[ot="+String(ot)+" oh="+String(oh)+ " obt="+String(obt)+" obatm="+String(obatm)+" obalt="+String(obalt)+"]");
-        terminal.flush();
-        myTimerEvent();
+        //terminal.println("BT:[ot="+String(ot)+" oh="+String(oh)+ " obt="+String(obt)+" obatm="+String(obatm)+" obalt="+String(obalt)+"]");
+        
+        myTimerEvent(); // write back
+
     }
    
-//    lcd->setCursor(0,0);
-//	lcd->print (btBuf);
-//	delay(100);
-      
+
     if (millis() - lastSync > ONE_DAY_MILLIS) {
     // Request time synchronization from the Spark Cloud
         lcd->init();  
@@ -427,36 +444,27 @@ void loop() {
         statusPrint ("Time Sync");
         
     }
+
+    // internal DHT22
     if ((millis()-lastUp>(CHECK_DHT_PERIOD*1000)) || (millis()<lastUp)){  
         lcdBacklightOn();
         lastUp=millis();
         ledStatus(led, 1,300);
-        //updateTwitterStatus2("lalala");
 
-        // switch (WiFi.RSSI()){
-        // case 1:
-        //     statusPrint("WIFI chip fail");
-        //     break;
-        // case 2:
-        //     statusPrint("WIFI timeout");
-        //     break;
-        // default:
-        //     String wifiStr = String(WiFi.SSID()) + "/" + String(WiFi.RSSI()) + " dB";
-        //     statusPrint(wifiStr);
+        // if (wifiRetries == -1) {
+        //     if (WiFi.ready()) {
+        //         //updateTwitterStatus2("wifi module reboot ok");
+        //         statusPrint("wifi Rebooted ok");
+        //         wifiRetries=0;
+        //     } else {
+        //         // wifi reboot, but has not readied yet
+        //         statusPrint("Wifi not ready");
+        //         WiFi.connect();
+        //     }
         // }
-
-        if (wifiRetries == -1) {
-            if (WiFi.ready()) {
-                //updateTwitterStatus2("wifi module reboot ok");
-                statusPrint("wifi Rebooted ok");
-                wifiRetries=0;
-            } else {
-                // wifi reboot, but has not readied yet
-                statusPrint("Wifi not ready");
-                WiFi.connect();
-            }
+        if (!WiFi.ready()) {
+            WiFi.connect();
         }
-
 // reading DHT
         statusPrint ("Reading DHT");
         f = 0;
@@ -464,25 +472,13 @@ void loop() {
         h = dht.readHumidity();
         
         statusPrint ("Read OK");
-        //String twmsg = "WM T="+ String(t).substring(0,4)+ " RH="+String(h).substring(0,4) + " " + timebuf;
-
-        // if (h<100) {    // only send valid data
-        //     sendToThingSpeakWithLed(led, t,h,pirMove,0);
-        //     //updateTwitterStatus2(twmsg);
-        // }
+        if (h<100) {
+            Blynk.virtualWrite(BLYNK_roomTemp, t);
+            Blynk.virtualWrite(BLYNK_roomHumidity, h); 
+        }
+ 
+ 
         
-// twitter if PIR changed
-        // if (pirMove>0 ) {
-        //     updateTwitterStatus2(twmsg );
-        // } else {    // no move
-        //     if(((millis()-lastTwitter) >MINIUMTWITTERPERIOD) || ( millis()<lastTwitter)){ // or 1 hour not twittered
-        //         updateTwitterStatus2(twmsg );
-           
-        //     }
-        // }
-        //  pirMove=0;
-
-        //delay(500);
         lcd->clear();
         lcd->setCursor(0,0);
         lcd->print("  Weather monitor  ");
@@ -494,17 +490,10 @@ void loop() {
         //lcd->setCursor(5,1);
         lcd->print(t,2);
         lcd->print(" C");
-        
-        // lcd->setCursor(0,2);
-        // lcd->print(emptyStr);
         lcd->setCursor(0,2);
         lcd->print("RH%= ");
-        //lcd->setCursor(5,2);
         lcd->print(h,2);
         lcd->print(" %");
-        // lcd->setCursor(15,2);
-        // //lcd->print( " ");
-        // lcd->print(++dataSent);
         
     }
     
@@ -515,73 +504,79 @@ void loop() {
     lcd->print(loopStr[loopIdx++]);
     if (loopIdx>13) loopIdx=0;
    
-    TimeString();
-    sprintf(buf, "  %hi.%01hi%cC / %hi.%01hi%cC  %i.%01i%% / %i.%01i%%  %i.%01i mb %s  ", 
-    int(t), abs(int(int(t*10)%10)), 0x7f, 
-    int(ot), abs(int(int(ot*10)%10)), 0x7f, 
-    int(h), int(int(h*10)%10),
-    int(oh), int(int(oh*10)%10),
-    int(obatm), int(int(obatm*10)%10),
-    timebuf);
-    bufLen = strlen(buf);
-    sprintf(buf2,"");
-
  
-    for (int i=0; i<10; i++) {
-        *(buf2+i)=0;
+    int displayTime = int(Time.second() /10);
+    switch (displayTime) {
+        case 0:
+        case 1:
+        case 2:
+            
+        //..99.9oc / 99.1oc  hh:mm.."
+            sprintf(buf, "  %2i.%1i%cC / %2i.%0i%cC  %s  ", 
+            int(t), abs(int(int(t*10)%10)), 0x7f, 
+            int(ot), abs(int(int(ot*10)%10)), 0x7f, 
+            timebuf);
+            bufLen = strlen(buf);
+            if (lastDisplayTemp !=0) {
+                bufPos=0;
+                lastDisplayTemp=0;
+            }
+            break;
+        case 3:
+        case 4:
+        
+        //..99.9oc / 99.1oc  hh:mm.."
+        //..99.9% / 99.9%    hh:mm.."
+            sprintf(buf, "  %2i.%1i%% / %2i.%1i%%    %s  ", 
+            int(h), int(int(h*10)%10),
+            int(oh), int(int(oh*10)%10),
+            
+            timebuf);
+            bufLen = strlen(buf);
+            sprintf(buf2,"");
+            if (lastDisplayTemp !=1) {
+                bufPos=0;
+                lastDisplayTemp=1;
+            }
+
+
+            break;
+        case 5 :
+        
+        //12345678901234567890123456
+        //..99.9oc / 99.1oc  hh:mm.."
+        //..99.9% / 99.9%    hh:mm.."
+        //..9999.9 mb........hh:mm..
+            sprintf(buf, "  %4i.%1i mb   . .  %s  ", 
+            int(obatm), int(int(obatm*10)%10),
+            timebuf);
+            bufLen = strlen(buf);
+            sprintf(buf2,"");
+            if (lastDisplayTemp !=2) {
+                bufPos=0;
+                lastDisplayTemp=2;
+            }
+            break;
+        
     }
+    
+    
+
+    // for (int i=0; i<10; i++) {
+    //     *(buf2+i)=0;
+    // }
     
     for (int i=0; i<8 && bufPos<bufLen; i++, bufPos++) {
         *(buf2+i) = *(buf+bufPos);
         
     }
     *(buf2+bufPos)=0;
-    if (bufPos>=bufLen) bufPos=0;
+    if (bufPos>=bufLen) {
+        bufPos=0;
+        
+    }
     scrollMessage(buf2);
-    
-    
-// Process PIR    
-    // if (((millis()-lastMoveUp>CHECK_PIR_PERIOD*1000) || (millis()<lastMoveUp)) && pirEnable) {
-    //     int k = digitalRead(pirPin);
-    //     lastMoveUp = millis();
-     
-    //     if (k==0 ) { // no move
-    //         if (millis()-lastMove>LCD_BACKLIGHT_PERIOD*1000 || (millis()<lastMove)) {
-    //             digitalWrite(pirLEDPin, LOW); // turn off the light
-    //         //    lcdBacklightOff();
-            
-    //         //ledStatus(D7, 1,50);
-    //         }
-    //         pirAlert -=1;
-    //         pirAlert = (pirAlert>0)?pirAlert:0;
-
-    //         //lcd->setCursor(0,18);
-    //         //lcd->print(String(pirAlert,DEC));
-
-    //     } else {
-    //         digitalWrite(pirLEDPin, HIGH);   // trun on the light
-    //         lastMove=millis();
-            
-    //         if (pirAlert<=0 && pirEnable) {
-    //             ledStatus(D7, 5,50);
-    //             updateTwitterStatus2("" + String(pirMove, DEC) +" " +timebuf  );
-    //             statusPrint("Move sensed");
-    //         }
-            
-    //         lcdBacklightOn();
-    //         //ledStatus(D7, 2,50);
-    //         pirAlert=CHECK_PIR_SILENTCYCLE;
-    //         pirMove+=1;
-    //         //lcd->setCursor(0,18);
-    //         //lcd->print(String(pirAlert,DEC)+ " "+String(k,DEC));
-    //         //pirAlert = false;
-            
-    //     }
-        
-        
-    // } // check PIR every 5 seconds
-    
-//2017 temperatory    
+ 
     lcdBacklightOff();
 
 }
@@ -738,6 +733,35 @@ void TimeString(){
     
 }
 
+char * getUpTime(){
+    static char str[14];
+    if (upTime<millis()/1000) {
+        upTime = millis()/1000+ (4294967295-startTime);
+    } else {
+        upTime = millis()/1000-startTime;
+    }
+    long d = upTime/86400;  //86400 seconds a day
+    int hr = upTime % 86400;
+    int h = hr / 3600;
+    int tr = hr % 3600;
+    int m = tr /60;
+    int s = m % 60;
+    sprintf(str,"%dD %02dh %02dm",d,h,m);
+    return str;
+    
+}
+
+// t is time in seconds = millis()/1000;
+// char * TimeToString(unsigned long t)
+// {
+//  static char str[12];
+//  long h = t / 3600;
+//  t = t % 3600;
+//  int m = t / 60;
+//  int s = t % 60;
+//  sprintf(str, "%04ld:%02d:%02d", h, m, s);
+//  return str;
+// }
 
 void statusPrint(String statusStr) {
     lcd->setCursor(0,3);
@@ -746,6 +770,8 @@ void statusPrint(String statusStr) {
     lcd->print (statusStr);
 
 }
+
+
 
 
 
@@ -831,41 +857,46 @@ void statusPrint(String statusStr) {
        
 // }
 
-BLYNK_READ(BLYNK_roomTemp) {
-  Blynk.virtualWrite(BLYNK_roomTemp, t);
-  }
-BLYNK_READ(BLYNK_outdoorTemp) {
-  Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
-  }
+
+//===== should be delete
+// BLYNK_READ(BLYNK_roomTemp) {
+//   Blynk.virtualWrite(BLYNK_roomTemp, t);
+//   }
+// BLYNK_READ(BLYNK_outdoorTemp) {
+//   Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
+//   }
 
 
-BLYNK_READ(BLYNK_roomHumidity) {
-  Blynk.virtualWrite(BLYNK_roomHumidity, h);
-  }
-BLYNK_READ(BLYNK_outdoorHumidity) {
-  Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
-  }
-BLYNK_READ(BLYNK_ATM) {
+// BLYNK_READ(BLYNK_roomHumidity) {
+//   Blynk.virtualWrite(BLYNK_roomHumidity, h);
+//   }
+// BLYNK_READ(BLYNK_outdoorHumidity) {
+//   Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
+//   }
+// BLYNK_READ(BLYNK_ATM) {
 
-  Blynk.virtualWrite(BLYNK_ATM, obatm);
+//   Blynk.virtualWrite(BLYNK_ATM, obatm);
 
-  }
-BLYNK_READ(BLYNK_ALT) {
+//   }
+// BLYNK_READ(BLYNK_ALT) {
 
-  Blynk.virtualWrite(BLYNK_ALT, obalt);
+//   Blynk.virtualWrite(BLYNK_ALT, obalt);
 
-  }
-BLYNK_READ(BLYNK_BMPTEMP) {
+//   }
+// BLYNK_READ(BLYNK_BMPTEMP) {
 
-  Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
-  }
+//   Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
+//   }
   
 BLYNK_WRITE(BLYNK_IMHERE ) {
 
     ledStatus(D7,3,10);
-    terminal.println("it should blink 3 times");
+    terminal.println("it should blink 3 times and reboot");
     terminal.flush();
-    Blynk.virtualWrite(BLYNK_roomTemp, t);
+    //Blynk.virtualWrite(BLYNK_roomTemp, t);
+    
+    System.reset();
+    
 }
 BLYNK_WRITE(BLYNK_cloud) {
     //Blykn.virtualRead(V2,)
@@ -878,6 +909,7 @@ BLYNK_WRITE(BLYNK_cloud) {
         terminal.println("Particle Cloud disconnected");
         ledStatus(D7,2,500);;
     }
+    terminal.println(getUpTime());
     
     terminal.flush();
 }
@@ -886,9 +918,11 @@ void myTimerEvent()
 {
   // You can send any value at any time.
   // Please don't send more that 10 values per second.
-    Blynk.virtualWrite(BLYNK_roomTemp, t);
-    Blynk.virtualWrite(BLYNK_roomHumidity, h); 
+  if ((oh!=0) && (obatm!=0) && (obalt!=0)) {
     Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
     Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
     Blynk.virtualWrite(BLYNK_ATM, obatm);
+    Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
+    Blynk.virtualWrite(BLYNK_ALT, obalt);
+}
 }
