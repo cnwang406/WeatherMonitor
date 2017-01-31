@@ -14,7 +14,7 @@
 
 
 
-#define Version "0.999a97a24"
+#define Version "0.999a97a42"
 
 
 // This #include statement was automatically 1added by the Spark IDE.
@@ -60,7 +60,7 @@ char auth[] ="5b752cbeca284df19a1c0d8deb1f1b88";
 //ThingSpeakLibrary::ThingSpeak thingspeak ("OS7CAQM44RGB0AI2");
 
 
-#define CHECK_DHT_PERIOD    10*60   //check DHT every 10 min
+#define CHECK_DHT_PERIOD    1*60   //check DHT every 10 min
 //#define CHECK_PIR_PERIOD    5       //check PIR every 5 sec.
 //#define CHECK_PIR_SILENTCYCLE   36  // 5 * 36 = 180 = 3 min silent.
 #define LCD_BACKLIGHT_PERIOD    10  //lcd backlight last 10 sec.
@@ -189,6 +189,10 @@ unsigned long currentTime;
 unsigned long startTime=millis()/1000;
 unsigned long upTime=0L;;
 unsigned long lastTime = 0UL;
+unsigned long blynkTimer = 60L; // 60 seconcds
+unsigned long lastBlynkTimer; // 60 seconcds
+
+
 String timeStr;
 String newTimeStr;
 String emptyStr = "                   ";
@@ -213,7 +217,7 @@ WidgetTerminal terminal(V18);
 #define BLYNK_ATM V8
 #define BLYNK_BMPTEMP V7
 #define BLYNK_ALT V5
-#define BLYNK_requestTime V9
+#define BLYNK_FREQ V9
 
 
 
@@ -259,7 +263,7 @@ void setup() {
    
     scrollMessage("Weather Monitor. by cnwang ");
     // byklin initialize
-    Blynk.begin(auth);
+  
     
     delay(3000);
     lcd->clear();
@@ -291,13 +295,24 @@ void setup() {
     lastSync = millis();
     
     TimeString();
+    Blynk.begin(auth);
     terminal.println(timebuf);
     terminal.println("Weather Monitor Start");
     terminal.print("Ver ");
     terminal.println(Version);
     terminal.println("----------------------");
+    //terminal.flush();
+  
+    
+    lastBlynkTimer=millis();
+    Blynk.virtualWrite(BLYNK_FREQ, blynkTimer);
+    Blynk.syncVirtual(BLYNK_FREQ);
+    terminal.print("BLYNK freq = ");
+    terminal.print(blynkTimer);
+    terminal.println(" seconds");
+    terminal.println(blynkTimer);
     terminal.flush();
-
+    
 
     lcd->setCursor(0,3);
     lcd->print(timebuf);
@@ -314,35 +329,17 @@ void setup() {
     
     ledStatus(D5, 1,100);   
     
-    
-//Set thingspeak    
-//     thingspeak.setConnectionTimeout(1500);
-     
-//writeToThingSpeak(50.5,50.5,3,0);
-     
-    
-    // statusPrint("TWITTER......");
-    // String twStart = "Weather Moniotr Start (" + String(Version) + ")";    
 
-//    updateTwitterStatus2(twStart);
-    
-    
-    
     
     
 // 20170
 //initial BT
     
-	Serial1.begin(115200);
-	Serial1.flush();
-	Serial1.flush();
+    Serial1.begin(9600);
+    Serial1.flush();
+    Serial1.flush();
     
-    // if (pirEnable) {
-    //     statusPrint("P=ENABLE");
-    // } else {
-    //     statusPrint("P=DISABLE");
-    // }
-
+ 
 
 }
 
@@ -356,6 +353,8 @@ char Accbuf[40];
 int x=0 ;
 char btBuf[128];
 
+int counterTotal = 0;
+int counterOK = 0;
 
 unsigned long btTimer=millis();
 int displayTemp = 0;
@@ -365,10 +364,10 @@ void loop() {
     char readByte;
  
     Blynk.run();
-       TimeString();
+    TimeString();
     if ((millis()-btTimer>60*1000L) || (millis()<btTimer)){
         ledStatus(D7, 3,50);
-        btTimer=millis();  //every 60 seconds
+        
         if (Serial1.available()) {
             //BT:[
             //   16.7 83.1 17.1 1033.8 0055.0]#
@@ -376,6 +375,7 @@ void loop() {
 
             readByte = Serial1.read();
             if (readByte == '#') {
+                delay(20);
                 float tempot = Serial1.parseFloat();
                 //tempot = (int(tempot*10) % 1000)/10;
                 while (tempot>100) {
@@ -394,6 +394,8 @@ void loop() {
                 delay(20);
                 Serial1.flush();    
                 int checkSum2 = int(tempoh)+int(tempobatm)+int(tempobt)+int(tempobalt)+int(tempot); 
+                counterTotal++;
+                
                 terminal.print (timebuf);
                 terminal.print (" ");
                 terminal.print("checksum= " + String(tempot)+ "+"+ String(tempoh)+ "+"+String(tempobatm)+"+"+
@@ -401,31 +403,47 @@ void loop() {
                     
                 if (checkSum2== checkSum){
                 
-                //if ((tempobatm > 900) && (tempobatm< 1300) && (tempoh>30) ) {    // valid value
                     ot = tempot;
                     oh = tempoh;
                     obt = tempobt;
                     obatm = tempobatm;
                     obalt = tempobalt;
                     terminal.print(" == ");
+                    counterOK++;
                 } else { // do something ....
                     delay(1000);    // delay 1 second
                     Serial1.flush();    // just remove all
                     terminal.print (" != ");
                     
+                    
                 }
-                terminal.println(checkSum2);
+                terminal.print(checkSum2);
+                
+                // terminal.print(counterOK);
+                
+                // terminal.print(counterTotal);
+                
+                terminal.printf(" %d out of %d OK (%2d.%1d%%)\n",counterOK, counterTotal,
+                    int( counterOK/counterTotal*100),(int((counterOK/counterTotal*1000)%10)));
                 terminal.flush();
                 ledStatus(D7, 1,20);
+            
             }
 
         }else {
             ledStatus(D7, 2,100);
         }
-        //terminal.println("BT:[ot="+String(ot)+" oh="+String(oh)+ " obt="+String(obt)+" obatm="+String(obatm)+" obalt="+String(obalt)+"]");
         
-        myTimerEvent(); // write back
-
+        //terminal.println("BT:[ot="+String(ot)+" oh="+String(oh)+ " obt="+String(obt)+" obatm="+String(obatm)+" obalt="+String(obalt)+"]");
+       // if (blynkTimer!=0) {
+           // if ((millis()-lastBlynkTimer > blynkTimer*1000L) || (millis() < lastBlynkTimer)) {
+                lastBlynkTimer=millis();
+                myTimerEvent();
+          //  } 
+       // }
+        
+        btTimer=millis();  //every 60 seconds
+        
     }
    
 
@@ -451,17 +469,6 @@ void loop() {
         lastUp=millis();
         ledStatus(led, 1,300);
 
-        // if (wifiRetries == -1) {
-        //     if (WiFi.ready()) {
-        //         //updateTwitterStatus2("wifi module reboot ok");
-        //         statusPrint("wifi Rebooted ok");
-        //         wifiRetries=0;
-        //     } else {
-        //         // wifi reboot, but has not readied yet
-        //         statusPrint("Wifi not ready");
-        //         WiFi.connect();
-        //     }
-        // }
         if (!WiFi.ready()) {
             WiFi.connect();
         }
@@ -473,8 +480,14 @@ void loop() {
         
         statusPrint ("Read OK");
         if (h<100) {
-            Blynk.virtualWrite(BLYNK_roomTemp, t);
-            Blynk.virtualWrite(BLYNK_roomHumidity, h); 
+        //    if (blynkTimer !=0) {
+            
+        //        if ((millis()-lastBlynkTimer>blynkTimer*1000L) || (millis()<lastBlynkTimer)){
+                    lastBlynkTimer = millis();
+                    Blynk.virtualWrite(BLYNK_roomTemp, t);
+                    Blynk.virtualWrite(BLYNK_roomHumidity, h); 
+       //         }
+           // }
         }
  
  
@@ -707,12 +720,15 @@ String left(int sss, int leng) {
 }
 
 void TimeString(){
-    timeStr =" ";
-    String newTimeStr = left(Time.month(),2) + "/" + left(Time.day(),2) + " " + left(Time.hour(),2)+ ":"+ left(Time.minute(),2)+" ";
+    sprintf(timebuf, "%02d/%02d %02d:%02d",Time.month(),Time.day(),Time.hour(),Time.minute());
     
-    timeStr = newTimeStr;
+    // timeStr =" ";
+    // String newTimeStr = left(Time.month(),2) + "/" + left(Time.day(),2) + " " + left(Time.hour(),2)+ ":"+ left(Time.minute(),2)+" ";
+    
+    // timeStr = newTimeStr;
+    
      
-    timeStr.toCharArray(timebuf,timeStr.length());
+    // timeStr.toCharArray(timebuf,timeStr.length());
     
     //set intensity
     byte currentHour =  Time.hour();
@@ -721,10 +737,10 @@ void TimeString(){
         ledIntensity = 15;
     } else if ((currentHour >=18) && (currentHour<24)){
         ledIntensity = 1;
-    } else {
-        ledIntensity = 0;
-        lcdBacklightOff();
-    }
+    } //else {
+    //     ledIntensity = 0;
+    //     lcdBacklightOff();
+    // }
   
     for (int a=0; a<6; a++) {
         
@@ -751,17 +767,6 @@ char * getUpTime(){
     
 }
 
-// t is time in seconds = millis()/1000;
-// char * TimeToString(unsigned long t)
-// {
-//  static char str[12];
-//  long h = t / 3600;
-//  t = t % 3600;
-//  int m = t / 60;
-//  int s = t % 60;
-//  sprintf(str, "%04ld:%02d:%02d", h, m, s);
-//  return str;
-// }
 
 void statusPrint(String statusStr) {
     lcd->setCursor(0,3);
@@ -775,119 +780,6 @@ void statusPrint(String statusStr) {
 
 
 
-// int writeToThingSpeak(float temperature, float humidity, int pirMove,int distance) {
-//     lcdBacklightOn();
-//     return 0;
-    
-//     statusPrint ("send to TS......");
-//     bool valSet2 = thingspeak.recordValue(2, String(temperature, 1));
-//     bool valSet1 = thingspeak.recordValue(1, String(humidity, 1));
-//     bool valSet3 = thingspeak.recordValue(3, String(pirMove, DEC));
-    
-//     bool valSent = thingspeak.sendValues();
-    
-//     if ( valSent) {
-        
-//         statusPrint("Sent to TS done");
-//         wifiRetries = 0;
-//         ledStatus(D7, 1,50);
-//         return 0;
-//     }else {
-//         wifiRetries ++;
-//         statusPrint("Sent to TS Fail (" + String(wifiRetries,DEC) + ")");
-//         if ( wifiRetries > WIFIRETRY) { 
-//             WiFi.off();
-//             delay(1000);
-//             WiFi.on();
-            
-//             wifiRetries=-1;     // means rebooted
-//             return -1; // come another day
-           
-//         }
-//         ledStatus(D7, 3,50);    
-//         return 1;
-//     }
-//     lcdBacklightOff();
-
-// }
-
-
-// void updateTwitterStatus2(String tweetData){
-//     int result;
-//       return;
- 
-//     TCPClient twitterClient;
-//     //tweetData="api_key=TGOF09S158REUUZC&status=" + tweetData;
-//     //String tw2 = "api_key=TGOF09S158REUUZC&status=WeGoII1";
-//     String tw2 = "api_key=TGOF09S158REUUZC&status=" + tweetData;
-    
-//     // Connecting and sending Tweet data to Thingspeak
-//     if(twitterClient.connect("api.thingspeak.com", 80))
-//     {
-//         twitterClient.print("POST /apps/thingtweet/1/statuses/update HTTP/1.1\n");
-//         twitterClient.print("Host: api.thingspeak.com\n");
-//         twitterClient.print("Connection: close\n");
-//         twitterClient.print("Content-Type: application/x-www-form-urlencoded\n");
-//         //twitterClient.print("Content-Length: " + String(tweetData.length(),DEC) + "\n\n");
-//         //twitterClient.println(tweetData); //the ""ln" is important here.
-        
-//         twitterClient.print("Content-Length: "+ String(tw2.length(),DEC) + "\n\n");
-        
-//         twitterClient.println(tw2);
-//         twitterClient.print("\n");
-//         // This delay is pivitol without it the TCP client will often close before the data is fully sent
-//       //statusPrint (" TW = "  + String(tw2.length(),DEC));
-//         delay(200);
-//         ledStatus(D7, 1,50);
-//         lastTwitter = millis();
-//         result= 0;
-//     }
-//     else{
-//         ledStatus(D7, 3,50);
-//         result= 1;
-        
-//     }
-        
-//     // if(!twitterClient.connected()){
-//     //     twitterClient.stop();
-//     // }
-//     twitterClient.flush();
-//     twitterClient.stop();
-    
-       
-// }
-
-
-//===== should be delete
-// BLYNK_READ(BLYNK_roomTemp) {
-//   Blynk.virtualWrite(BLYNK_roomTemp, t);
-//   }
-// BLYNK_READ(BLYNK_outdoorTemp) {
-//   Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
-//   }
-
-
-// BLYNK_READ(BLYNK_roomHumidity) {
-//   Blynk.virtualWrite(BLYNK_roomHumidity, h);
-//   }
-// BLYNK_READ(BLYNK_outdoorHumidity) {
-//   Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
-//   }
-// BLYNK_READ(BLYNK_ATM) {
-
-//   Blynk.virtualWrite(BLYNK_ATM, obatm);
-
-//   }
-// BLYNK_READ(BLYNK_ALT) {
-
-//   Blynk.virtualWrite(BLYNK_ALT, obalt);
-
-//   }
-// BLYNK_READ(BLYNK_BMPTEMP) {
-
-//   Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
-//   }
-  
 BLYNK_WRITE(BLYNK_IMHERE ) {
 
     ledStatus(D7,3,10);
@@ -898,6 +790,7 @@ BLYNK_WRITE(BLYNK_IMHERE ) {
     System.reset();
     
 }
+
 BLYNK_WRITE(BLYNK_cloud) {
     //Blykn.virtualRead(V2,)
     if (param.asInt() ==1) { // connect 
@@ -914,15 +807,33 @@ BLYNK_WRITE(BLYNK_cloud) {
     terminal.flush();
 }
 
+BLYNK_WRITE(BLYNK_FREQ ) {
+
+    ledStatus(D7,3,1000);
+    if (param.asInt()==0) { // stop write to blynk
+        blynkTimer = 0L;
+        terminal.println("Suspend write to Blynk");
+    } else {
+        blynkTimer = param.asInt();
+        terminal.print("Blynk write frequency change to ");
+        terminal.print(blynkTimer);
+        terminal.println(" seconds");
+    }
+    
+    terminal.flush();
+    
+}
+
+
 void myTimerEvent()
 {
   // You can send any value at any time.
   // Please don't send more that 10 values per second.
-  if ((oh!=0) && (obatm!=0) && (obalt!=0)) {
-    Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
-    Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
-    Blynk.virtualWrite(BLYNK_ATM, obatm);
-    Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
-    Blynk.virtualWrite(BLYNK_ALT, obalt);
-}
+    if ((oh!=0) && (obatm!=0) && (obalt!=0)) {
+        Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
+        Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
+        Blynk.virtualWrite(BLYNK_ATM, obatm);
+        Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
+        Blynk.virtualWrite(BLYNK_ALT, obalt);
+    }
 }
