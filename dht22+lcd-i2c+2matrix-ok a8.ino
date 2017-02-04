@@ -14,7 +14,7 @@
 
 
 
-#define Version "0.999a97a42"
+#define Version "0.999a97a52"
 
 
 // This #include statement was automatically 1added by the Spark IDE.
@@ -189,9 +189,9 @@ unsigned long currentTime;
 unsigned long startTime=millis()/1000;
 unsigned long upTime=0L;;
 unsigned long lastTime = 0UL;
-unsigned long blynkTimer = 60L; // 60 seconcds
+unsigned long blynkTimer = 15L; // 60 seconcds
 unsigned long lastBlynkTimer; // 60 seconcds
-
+unsigned long lastBlynkTimer2; // 60 seconcds
 
 String timeStr;
 String newTimeStr;
@@ -223,7 +223,7 @@ WidgetTerminal terminal(V18);
 
 void setup() {
   
-  
+ 
     lcd = new LiquidCrystal_I2C(0x27, 20,4);
   
     lcd->init();                      // initialize the lcd
@@ -294,17 +294,19 @@ void setup() {
     Particle.syncTime();
     lastSync = millis();
     
-    TimeString();
+     //terminal.flush();
+      TimeString();
     Blynk.begin(auth);
     terminal.println(timebuf);
     terminal.println("Weather Monitor Start");
     terminal.print("Ver ");
     terminal.println(Version);
     terminal.println("----------------------");
-    //terminal.flush();
-  
+
+
     
     lastBlynkTimer=millis();
+    lastBlynkTimer2=millis();
     Blynk.virtualWrite(BLYNK_FREQ, blynkTimer);
     Blynk.syncVirtual(BLYNK_FREQ);
     terminal.print("BLYNK freq = ");
@@ -355,6 +357,8 @@ char btBuf[128];
 
 int counterTotal = 0;
 int counterOK = 0;
+bool dataWrote = TRUE;
+bool dataWrite2 = TRUE;
 
 unsigned long btTimer=millis();
 int displayTemp = 0;
@@ -365,14 +369,15 @@ void loop() {
  
     Blynk.run();
     TimeString();
-    if ((millis()-btTimer>60*1000L) || (millis()<btTimer)){
+    if ((millis()-btTimer>30*1000L) || (millis()<btTimer)){
         ledStatus(D7, 3,50);
-        
+        //terminal.print("read BT...");
         if (Serial1.available()) {
             //BT:[
             //   16.7 83.1 17.1 1033.8 0055.0]#
             //  123456789012345678901234567890 
-
+            // terminal.println("data in");
+            // terminal.flush();
             readByte = Serial1.read();
             if (readByte == '#') {
                 delay(20);
@@ -409,6 +414,7 @@ void loop() {
                     obatm = tempobatm;
                     obalt = tempobalt;
                     terminal.print(" == ");
+                    dataWrote=FALSE;
                     counterOK++;
                 } else { // do something ....
                     delay(1000);    // delay 1 second
@@ -422,24 +428,37 @@ void loop() {
                 // terminal.print(counterOK);
                 
                 // terminal.print(counterTotal);
+                double perc = counterOK*100.0/counterTotal;
+                terminal.printf(" %d out of %d OK (%2i.%1i%%) \n",counterOK, counterTotal,
+                    int (perc),int(int(perc*10)%10));    
                 
-                terminal.printf(" %d out of %d OK (%2d.%1d%%)\n",counterOK, counterTotal,
-                    int( counterOK/counterTotal*100),(int((counterOK/counterTotal*1000)%10)));
                 terminal.flush();
+                
                 ledStatus(D7, 1,20);
             
             }
 
         }else {
             ledStatus(D7, 2,100);
+            // terminal.print(timebuf);
+            // terminal.println("  NO data in");
+            terminal.flush();
         }
         
         //terminal.println("BT:[ot="+String(ot)+" oh="+String(oh)+ " obt="+String(obt)+" obatm="+String(obatm)+" obalt="+String(obalt)+"]");
        // if (blynkTimer!=0) {
-           // if ((millis()-lastBlynkTimer > blynkTimer*1000L) || (millis() < lastBlynkTimer)) {
+           if ((millis()-lastBlynkTimer > blynkTimer*1000L) || (millis() < lastBlynkTimer)) {
+            //   terminal.println(timebuf);
+            //   terminal.printf("write! %u -  %u = %u , int=%u \n",millis(), lastBlynkTimer, millis()-lastBlynkTimer, blynkTimer*1000L);
                 lastBlynkTimer=millis();
+                
                 myTimerEvent();
-          //  } 
+                
+            } else {
+                // terminal.println(timebuf);
+                // terminal.printf("No write ! %u -  %u = %u , int=%u \n",millis(), lastBlynkTimer, millis()-lastBlynkTimer, blynkTimer*1000L);
+            }
+            terminal.flush();
        // }
         
         btTimer=millis();  //every 60 seconds
@@ -480,13 +499,15 @@ void loop() {
         
         statusPrint ("Read OK");
         if (h<100) {
-        //    if (blynkTimer !=0) {
+        // if (blynkTimer !=0) {
             
-        //        if ((millis()-lastBlynkTimer>blynkTimer*1000L) || (millis()<lastBlynkTimer)){
-                    lastBlynkTimer = millis();
+                // if ((millis()-lastBlynkTimer2>blynkTimer*1000L) || (millis()<lastBlynkTimer2)){
+                //     lastBlynkTimer2 = millis();
+                    // terminal.print(timebuf);
+                    // terminal.printf( " Write roomTemp\n");
                     Blynk.virtualWrite(BLYNK_roomTemp, t);
                     Blynk.virtualWrite(BLYNK_roomHumidity, h); 
-       //         }
+                // }
            // }
         }
  
