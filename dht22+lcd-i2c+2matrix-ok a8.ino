@@ -1,5 +1,11 @@
+// compile with v0.5.3 core,
+// with Blynk 0.4.7 is ok.
+
+// This #include statement was automatically added by the Particle IDE.
+#include <blynk.h>
+
 //// This #include statement was automatically added by the Particle IDE.
-#include "blynk/blynk.h"
+//#include "blynk/blynk.h"
 
 
 // This #include statement was automatically added by the Particle IDE.
