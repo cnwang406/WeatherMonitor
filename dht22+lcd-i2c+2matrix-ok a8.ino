@@ -1,11 +1,11 @@
-// compile with v0.5.3 core,
-// with Blynk 0.4.7 is ok.
+    // compiled with core 0.5.3
+// blynk 0.4.7
 
 // This #include statement was automatically added by the Particle IDE.
 #include <blynk.h>
 
 //// This #include statement was automatically added by the Particle IDE.
-//#include "blynk/blynk.h"
+#include "blynk/blynk.h"
 
 
 // This #include statement was automatically added by the Particle IDE.
@@ -20,7 +20,7 @@
 
 
 
-#define Version "0.999a97a52"
+#define Version "0.999a97a57"
 
 
 // This #include statement was automatically 1added by the Spark IDE.
@@ -228,7 +228,7 @@ WidgetTerminal terminal(V18);
 
 
 void setup() {
-  
+     ledStatus(D7, 5,1000); // I'm on 
  
     lcd = new LiquidCrystal_I2C(0x27, 20,4);
   
@@ -414,14 +414,16 @@ void loop() {
                     
                 if (checkSum2== checkSum){
                 
-                    ot = tempot;
-                    oh = tempoh;
-                    obt = tempobt;
+                    ot = (tempot>100.0) ? ot:tempot;
+                    oh = (tempoh>100.0)?oh : tempoh;
+                    obt = (tempobt>100 || tempobt<=0)? ot : tempobt;
+                    //obt = tempobt;
                     obatm = tempobatm;
                     obalt = tempobalt;
                     terminal.print(" == ");
                     dataWrote=FALSE;
                     counterOK++;
+                    
                 } else { // do something ....
                     delay(1000);    // delay 1 second
                     Serial1.flush();    // just remove all
@@ -430,13 +432,15 @@ void loop() {
                     
                 }
                 terminal.print(checkSum2);
-                
                 // terminal.print(counterOK);
                 
                 // terminal.print(counterTotal);
                 double perc = counterOK*100.0/counterTotal;
                 terminal.printf(" %d out of %d OK (%2i.%1i%%) \n",counterOK, counterTotal,
                     int (perc),int(int(perc*10)%10));    
+                
+                if (tempot>100.0 || tempoh >100) { terminal.println(" outdoor DHT22 FAIL!");}
+                if (tempobt>100.0 || tempobatm>1045) { terminal.println( " outdoor BMP FAIL!");}
                 
                 terminal.flush();
                 
@@ -504,7 +508,7 @@ void loop() {
         h = dht.readHumidity();
         
         statusPrint ("Read OK");
-        if (h<100) {
+        if ((h<100)&& (t<100)) {
         // if (blynkTimer !=0) {
             
                 // if ((millis()-lastBlynkTimer2>blynkTimer*1000L) || (millis()<lastBlynkTimer2)){
@@ -515,6 +519,10 @@ void loop() {
                     Blynk.virtualWrite(BLYNK_roomHumidity, h); 
                 // }
            // }
+        } else {
+                terminal.println(" indoor DHT FAIL...\n   ** REBOOT **\n");
+                terminal.flush();
+//                System.reset();
         }
  
  
@@ -856,9 +864,17 @@ void myTimerEvent()
 {
   // You can send any value at any time.
   // Please don't send more that 10 values per second.
-    if ((oh!=0) && (obatm!=0) && (obalt!=0)) {
+  
+  
+  //DHT22
+    if ((oh!=0)) {
         Blynk.virtualWrite(BLYNK_outdoorHumidity, oh);
         Blynk.virtualWrite(BLYNK_outdoorTemp, ot);
+        
+    }
+    
+    //BMP
+    if ((obatm!=0) && (obalt!=0)) {
         Blynk.virtualWrite(BLYNK_ATM, obatm);
         Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
         Blynk.virtualWrite(BLYNK_ALT, obalt);
