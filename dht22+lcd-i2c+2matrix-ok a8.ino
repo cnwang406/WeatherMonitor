@@ -20,7 +20,8 @@
 
 
 
-#define Version "0.999a97a57"
+#define Version "0.999a97a57beta1"
+
 
 
 // This #include statement was automatically 1added by the Spark IDE.
@@ -36,6 +37,10 @@
 #include "dht22.h"
 
 #include "ledcontrol.h"
+
+
+#define OBTEnable FALSE
+// FALSE, use w/ 
 
 
 int led=7;
@@ -395,38 +400,58 @@ void loop() {
                 delay(20);
                 float tempoh = Serial1.parseFloat();
                 delay(20);
-                float tempobatm=Serial1.parseFloat();
-                delay(20);
-                float tempobt = Serial1.parseFloat();
-                delay(20);
-                float tempobalt=Serial1.parseFloat();
-                delay(20);
+                float tempobatm=0.0;
+                float tempobt = 0.0;
+                float tempobalt = 0.0;
+                // a57beta1
+                if (OBTEnable) {
+                    tempobatm=Serial1.parseFloat();
+                    delay(20);
+                    tempobt = Serial1.parseFloat();
+                    delay(20);
+                    tempobalt=Serial1.parseFloat();
+                    delay(20);
+                }
                 int checkSum = Serial1.parseInt();
                 delay(20);
+                
                 Serial1.flush();    
-                int checkSum2 = int(tempoh)+int(tempobatm)+int(tempobt)+int(tempobalt)+int(tempot); 
+                int checkSum2 = int(tempoh) +int(tempot);
+                /*int(tempobatm) +int(tempobt)+int(tempobalt)*/ 
+                if (OBTEnable) {
+                    checkSum2 = checkSum2 + int(tempobatm) +int(tempobt)+int(tempobalt);
+                }
                 counterTotal++;
                 
                 terminal.print (timebuf);
                 terminal.print (" ");
-                terminal.print("checksum= " + String(tempot)+ "+"+ String(tempoh)+ "+"+String(tempobatm)+"+"+
-                    String(tempobalt)+"+"+String(tempobt)+"="+String(checkSum) );
+                if (OBTEnable) {
+                    terminal.print("checksum= " + String(tempot)+ "+"+ String(tempoh)+ "+"+String(tempobatm)+"+"+
+                        String(tempobalt)+"+"+String(tempobt)+"="+String(checkSum) );
+                } else {
+                    terminal.print("checksum= " + String(tempot)+ "+"+ String(tempoh) +"="+String(checkSum) );
+                }
                     
                 if (checkSum2== checkSum){
                 
                     ot = (tempot>100.0) ? ot:tempot;
                     oh = (tempoh>100.0)?oh : tempoh;
-                    obt = (tempobt>100 || tempobt<=0)? ot : tempobt;
-                    //obt = tempobt;
-                    obatm = tempobatm;
-                    obalt = tempobalt;
+                    
+                    /* a57beta1 */
+                    if (OBTEnable) {
+                        obt = (tempobt>100 || tempobt<=0)? ot : tempobt;
+                    
+                        obatm = tempobatm;
+                        obalt = tempobalt;
+                    }
                     terminal.print(" == ");
                     dataWrote=FALSE;
                     counterOK++;
                     
                 } else { // do something ....
-                    delay(1000);    // delay 1 second
+                
                     Serial1.flush();    // just remove all
+                    delay(1000);    // delay 1 second
                     terminal.print (" != ");
                     
                     
@@ -440,8 +465,9 @@ void loop() {
                     int (perc),int(int(perc*10)%10));    
                 
                 if (tempot>100.0 || tempoh >100) { terminal.println(" outdoor DHT22 FAIL!");}
-                if (tempobt>100.0 || tempobatm>1045) { terminal.println( " outdoor BMP FAIL!");}
-                
+                if (OBTEnable) {
+                    if (tempobt>100.0 || tempobatm>1045) { terminal.println( " outdoor BMP FAIL!");}
+                }
                 terminal.flush();
                 
                 ledStatus(D7, 1,20);
@@ -558,6 +584,7 @@ void loop() {
         case 0:
         case 1:
         case 2:
+    
             
         //..99.9oc / 99.1oc  hh:mm.."
             sprintf(buf, "  %2i.%1i%cC / %2i.%0i%cC  %s  ", 
@@ -595,15 +622,25 @@ void loop() {
         //..99.9oc / 99.1oc  hh:mm.."
         //..99.9% / 99.9%    hh:mm.."
         //..9999.9 mb........hh:mm..
-            sprintf(buf, "  %4i.%1i mb   . .  %s  ", 
-            int(obatm), int(int(obatm*10)%10),
-            timebuf);
+        
+            if (OBTEnable) {
+        
+                sprintf(buf, "  %4i.%1i mb   . .  %s  ", 
+                int(obatm), int(int(obatm*10)%10),
+                timebuf);
+            } else {
+                 sprintf(buf, "  %2i.%1i%% / %2i.%1i%%    %s  ", 
+                    int(h), int(int(h*10)%10),
+                    int(oh), int(int(oh*10)%10),
+                    timebuf); 
+            }
             bufLen = strlen(buf);
             sprintf(buf2,"");
             if (lastDisplayTemp !=2) {
                 bufPos=0;
                 lastDisplayTemp=2;
             }
+            
             break;
         
     }
@@ -874,9 +911,11 @@ void myTimerEvent()
     }
     
     //BMP
-    if ((obatm!=0) && (obalt!=0)) {
-        Blynk.virtualWrite(BLYNK_ATM, obatm);
-        Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
-        Blynk.virtualWrite(BLYNK_ALT, obalt);
+    if (OBTEnable) {
+        if ((obatm!=0) && (obalt!=0)) {
+            Blynk.virtualWrite(BLYNK_ATM, obatm);
+            Blynk.virtualWrite(BLYNK_BMPTEMP, obt);
+            Blynk.virtualWrite(BLYNK_ALT, obalt);
+        }
     }
 }
